@@ -1,0 +1,2117 @@
+<!DOCTYPE html>
+<html style="height:100%">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Orbital Debris 3D v2.11</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#03050f;overflow:hidden;font-family:'Courier New',monospace}
+body{display:flex;flex-direction:column}
+#cw{flex:1;position:relative;min-height:0;overflow:hidden}
+#c3d{display:block;width:100%;height:100%;touch-action:none;position:absolute;top:0;left:0}
+#c2d{display:none;width:100%;height:100%;touch-action:none;position:absolute;top:0;left:0}
+
+#hud{
+  position:absolute;top:10px;left:10px;
+  font-size:clamp(11px,2.8vw,14px);
+  color:#ffffff;line-height:1.9;pointer-events:none;
+  text-shadow:0 0 10px rgba(0,0,60,1);
+  z-index:10;
+}
+#hud .lbl{color:rgba(255,255,255,0.6)}
+#hud .val{color:#ffffff;font-weight:700}
+#hud .warn{color:rgba(255,120,50,0.95);font-weight:700}
+#hud-zoom{display:none}
+
+#leg{
+  position:absolute;top:10px;right:10px;
+  font-size:clamp(10px,2.4vw,12px);
+  color:#ffffff;line-height:2.1;pointer-events:none;text-align:right;
+  text-shadow:0 0 8px rgba(0,0,40,0.9);
+  z-index:10;
+}
+@media(max-width:400px){#leg{display:none}}
+
+#stats-panel{
+  position:absolute;bottom:8px;left:8px;
+  font-size:clamp(11px,2.8vw,13px);
+  color:#ffffff;line-height:1.9;pointer-events:none;
+  background:rgba(3,5,15,0.85);
+  border:1px solid rgba(74,158,255,0.25);
+  border-radius:6px;padding:8px 12px;
+  display:none;
+  text-shadow:0 0 6px rgba(0,0,40,0.8);
+  max-width:calc(100vw - 16px);
+  z-index:10;
+}
+#stats-panel.visible{display:block}
+#stats-panel .pct-bar{
+  display:inline-block;height:6px;background:rgba(74,158,255,0.2);
+  border-radius:3px;vertical-align:middle;margin-left:6px;width:70px;
+  position:relative;overflow:hidden;
+}
+#stats-panel .pct-fill{
+  position:absolute;top:0;left:0;height:100%;
+  background:linear-gradient(90deg,#4a9eff,#ff7043);
+  border-radius:3px;transition:width 0.3s;
+}
+
+#bar{
+  flex-shrink:0;
+  display:flex;flex-wrap:wrap;
+  align-items:center;
+  gap:6px;
+  padding:8px 10px;
+  background:#090d1a;
+  border-top:1px solid #1a2236;
+}
+#grpSpd{margin-left:auto}
+@media(max-width:500px){
+  #grpSpd{margin-left:0;width:100%;border-top:1px solid #1a2236;padding-top:6px;}
+  #grpSpd input[type=range]{flex:1;width:auto;max-width:none;}
+}
+#bar-row2{
+  flex-shrink:0;display:flex;align-items:center;flex-wrap:wrap;
+  gap:6px 10px;padding:6px 10px 8px;
+  background:#090d1a;border-top:1px solid #111825;
+}
+
+button{
+  font-size:clamp(12px,3.2vw,14px);padding:7px 10px;
+  cursor:pointer;white-space:nowrap;
+  background:rgba(255,255,255,0.04);border:1px solid #2a3a55;color:#ffffff;
+  border-radius:6px;min-height:36px;-webkit-tap-highlight-color:transparent;
+}
+button:active{background:#1a2a40}
+#bBoom{border-color:#8b2020;color:#f06060;font-weight:600}
+#bBoom:disabled{opacity:0.3;cursor:default}
+#bFocus:disabled{opacity:0.3;cursor:default}
+#bFocus.active{border-color:#00cc88;color:#00ffb4;font-weight:600}
+#bAllOrbits.active{border-color:#4a9eff;color:#4a9eff;font-weight:600}
+
+.ctl{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.ctl label{font-size:clamp(11px,2.8vw,13px);color:#ffffff}
+.ctl .v{font-size:clamp(11px,2.8vw,13px);font-weight:600;color:#ffffff;min-width:36px}
+.ctl input[type=range]{
+  width:clamp(80px,22vw,160px);
+  -webkit-appearance:none;appearance:none;
+  height:4px;background:rgba(255,255,255,0.2);
+  border-radius:2px;outline:none;cursor:pointer;margin:0;padding:0;vertical-align:middle;
+}
+.ctl input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:14px;height:14px;border-radius:50%;background:#00cc44;
+  cursor:pointer;box-shadow:0 0 4px rgba(0,204,68,0.6);margin-top:-5px;
+}
+.ctl input[type=range]::-moz-range-thumb{
+  width:14px;height:14px;border-radius:50%;background:#00cc44;
+  cursor:pointer;border:none;box-shadow:0 0 4px rgba(0,204,68,0.6);
+}
+.ctl input[type=range]::-webkit-slider-runnable-track{height:4px;background:rgba(255,255,255,0.2);border-radius:2px;}
+.ctl input[type=range]::-moz-range-track{height:4px;background:rgba(255,255,255,0.2);border-radius:2px;}
+.ctl input[type=number],.ctl input[type=text]{
+  width:clamp(52px,12vw,68px);font-size:clamp(12px,3vw,14px);
+  background:#080d1a;border:1px solid #2a3a55;color:#ffffff;
+  border-radius:5px;padding:4px 6px;outline:none;-webkit-appearance:none;
+}
+.ctl input[type=number]:focus,.ctl input[type=text]:focus{border-color:#4a9eff}
+.ctl input[type=number]:disabled,.ctl input[type=text]:disabled,
+.ctl input[type=range]:disabled{opacity:0.35;pointer-events:none}
+.param-group.locked label{color:rgba(80,100,140,0.5)}
+.param-group.locked .v{color:rgba(100,120,160,0.5)}
+#cbWrap{display:flex;align-items:center;gap:5px}
+#cbWrap label{font-size:clamp(12px,3vw,14px);color:#ffffff;cursor:pointer}
+#cbAtmo{accent-color:#4a9eff;width:15px;height:15px;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="cw">
+  <canvas id="c3d"></canvas>
+  <canvas id="c2d"></canvas>
+  <div id="hud">
+    <span class="lbl">t</span> = <span id="ht" class="val">0 мин</span><br>
+    <span class="lbl">Виток</span> = <span id="hv" class="val">0.00</span><br>
+    <span id="hud-zoom" class="lbl">zoom = <span id="hz" class="val">1.0</span>×<br></span>
+    <span class="lbl">Высота орб.</span> = <span id="hh" class="val">—</span> км<br>
+    <span class="lbl">V</span> = <span id="hvel" class="val">—</span> км/с<br>
+    <span id="hud-obj-info" style="display:none">
+      <span class="lbl">Апогей</span> = <span id="hh-apo" class="val">—</span> км<br>
+      <span class="lbl">Перигей</span> = <span id="hh-per" class="val">—</span> км<br>
+      <span class="lbl">Наклонение</span> = <span id="hh-inc" class="val">—</span>°<br>
+      <span class="lbl">Эксцентр.</span> = <span id="hh-ecc" class="val">—</span><br>
+    </span>
+    <span id="hud-deorbit" style="display:none" class="warn">⚠ объект деорбитировал</span>
+    <span id="hud-escape" style="display:none" class="warn">↗ улетел по гиперболе</span>
+  </div>
+  <div id="leg">
+    <span style="color:rgba(255,255,255,0.4);font-size:clamp(9px,2vw,11px)">v2.11</span>
+  </div>
+  <div id="stats-panel">
+    <div><span class="lbl">Осколков на орбите:</span> <span id="sp-alive" class="val">0</span> / <span id="sp-total" class="val">0</span>
+      <span class="pct-bar"><span class="pct-fill" id="sp-bar" style="width:100%"></span></span>
+    </div>
+    <div><span class="lbl">За границей наблюдений:</span> <span id="sp-beyond" class="val">0</span></div>
+    <div><span class="lbl">Деорбитировали:</span> <span id="sp-dead" class="warn">0</span></div>
+    <div><span class="lbl">Потеряно в космосе:</span> <span id="sp-escaped" class="warn">0</span></div>
+    <div><span class="lbl">Макс. апогей:</span> <span id="sp-apo" class="val">—</span> км</div>
+    <div><span class="lbl">Мин. перигей:</span> <span id="sp-per" class="val">—</span> км</div>
+  </div>
+  </div>
+</div>
+
+<div id="bar">
+  <button id="bPlay">▶ Старт</button>
+  <button id="bReset">⟳</button>
+  <button id="bBoom">💥 Взрыв</button>
+  <button id="bView">⊡ Вид</button>
+  <button id="bFull">⛶ Полный</button>
+  <button id="bFocus" disabled>◎ Фокус</button>
+  <button id="bAllOrbits">⊙ Все орбиты</button>
+  <button id="bMode">⬡ 2D</button>
+  <div class="ctl">
+    <label>Распределение скоростей:</label>
+    <select id="selDvDist" style="font-size:clamp(11px,2.8vw,13px);background:#080d1a;border:1px solid #2a3a55;color:#ffffff;border-radius:5px;padding:4px 5px;outline:none;cursor:pointer">
+      <option value="uniform">Равномерное</option>
+      <option value="exponential">Экспоненциальное</option>
+      <option value="maxwell">Максвелл–Больцман</option>
+    </select>
+  </div>
+  <div class="ctl" id="grpSpd">
+    <label>Время×:</label>
+    <input type="range" id="sSpd" min="1" max="3000" value="300" step="1">
+    <span class="v" id="lSpd">300×</span>
+  </div>
+</div>
+<div id="bar-row2">
+  <div class="ctl param-group" id="grpDv">
+    <label>|Δv| разлёта:</label>
+    <input type="range" id="sDv" min="100" max="4000" value="1000" step="100">
+    <span class="v" id="lDv">1000 м/с</span>
+  </div>
+  <div class="ctl param-group" id="grpLaunchDv">
+    <label>Разгон:</label>
+    <input type="range" id="sLaunchDv" min="-4000" max="4000" value="0" step="50">
+    <span class="v" id="lLaunchDv">0 м/с</span>
+  </div>
+  <div class="ctl param-group" id="grpMass">
+    <label>Масса:</label>
+    <input type="text" inputmode="numeric" id="nMass" value="100" placeholder="1–100000">
+    <label>кг</label>
+  </div>
+  <div class="ctl param-group" id="grpAlt">
+    <label>Высота:</label>
+    <input type="text" inputmode="numeric" id="nAlt" value="500" placeholder="150–2000">
+    <label>км</label>
+  </div>
+  <div class="ctl param-group" id="grpFrag">
+    <label>Осколки:</label>
+    <input type="text" inputmode="numeric" id="nFrag" value="36" placeholder="36–1000">
+  </div>
+  <div class="ctl param-group" id="grpSize">
+    <label>Размер:</label>
+    <input type="range" id="sSize" min="0.5" max="6" value="2.5" step="0.5">
+    <span class="v" id="lSize">2.5</span>
+  </div>
+  <div id="cbWrap">
+    <input type="checkbox" id="cbAtmo" checked>
+    <label for="cbAtmo">🌫 Атмосфера</label>
+  </div>
+  <div class="ctl" id="grpSkip" style="margin-left:auto">
+    <label>Перемотать:</label>
+    <input type="text" inputmode="numeric" id="nSkip" value="365" style="width:clamp(44px,10vw,60px)">
+    <select id="selSkip" style="font-size:clamp(11px,2.8vw,13px);background:#080d1a;border:1px solid #2a3a55;color:#ffffff;border-radius:5px;padding:4px 5px;outline:none;cursor:pointer">
+      <option value="1">дн.</option>
+      <option value="30">мес.</option>
+      <option value="365">лет</option>
+    </select>
+    <button id="bSkip">⏩</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// PHYSICS — shared between 3D and 2D renderers
+// ══════════════════════════════════════════════════════════════════════════════
+const GM    = 3.986e14;
+const RE    = 6371e3;
+const J2    = 1.08263e-3;
+const R_OBS = 4e8; // Граница наблюдений: 400 000 км
+const CD    = 2.2;   // drag coefficient (sphere)
+const AREA  = 0.45;  // cross-section area, m² (≈ 75 cm diameter sphere)
+// BCOEF = m / (Cd * A) — computed from user mass
+let objMass = 100;   // kg, default
+let BCOEF   = objMass / (CD * AREA);   // ~≈ 455 kg/m²
+
+const ATMO_LAYERS = [
+  [0,1.225,8500],[11e3,0.3639,6341],[25e3,0.04008,6381],
+  [47e3,0.001846,7922],[86e3,5.457e-6,5900],[100e3,5.6e-7,15000],
+  [120e3,2.438e-8,11500],[200e3,2.541e-10,8300],[300e3,1.916e-11,9000],
+  [400e3,2.803e-12,10000],[500e3,5.215e-13,11000],[600e3,1.137e-13,12000],
+  [700e3,3.070e-14,14000],[1000e3,3.019e-15,160000],
+];
+function airDensity(h){
+  if(h>=1500e3)return 0;
+  let layer=ATMO_LAYERS[0];
+  for(let i=ATMO_LAYERS.length-1;i>=0;i--){if(h>=ATMO_LAYERS[i][0]){layer=ATMO_LAYERS[i];break;}}
+  return layer[1]*Math.exp(-(h-layer[0])/layer[2]);
+}
+
+const _k=new Float64Array(24);
+function rk4(x,y,z,vx,vy,vz,dt,drag,out){
+  function derivInto(ox,oy,oz,ovx,ovy,ovz,base){
+    const r=Math.sqrt(ox*ox+oy*oy+oz*oz);
+    const r2=r*r, r5=r2*r2*r;
+    const ag=-GM/r2;
+    const j2f=1.5*J2*GM*RE*RE/r5;
+    const yr2=oy*oy/r2;
+    let ax=ag*ox/r+j2f*ox*(1-5*yr2);
+    let ay=ag*oy/r+j2f*oy*(3-5*yr2);
+    let az=ag*oz/r+j2f*oz*(1-5*yr2);
+    if(drag&&atmoEnabled){
+      const rho=airDensity(r-RE);
+      const v=Math.sqrt(ovx*ovx+ovy*ovy+ovz*ovz);
+      const ad=rho*v/(2*BCOEF);
+      ax-=ad*ovx; ay-=ad*ovy; az-=ad*ovz;
+    }
+    _k[base]=ovx;_k[base+1]=ovy;_k[base+2]=ovz;
+    _k[base+3]=ax;_k[base+4]=ay;_k[base+5]=az;
+  }
+  const h=dt/2;
+  derivInto(x,y,z,vx,vy,vz,0);
+  derivInto(x+_k[0]*h,y+_k[1]*h,z+_k[2]*h,vx+_k[3]*h,vy+_k[4]*h,vz+_k[5]*h,6);
+  derivInto(x+_k[6]*h,y+_k[7]*h,z+_k[8]*h,vx+_k[9]*h,vy+_k[10]*h,vz+_k[11]*h,12);
+  derivInto(x+_k[12]*dt,y+_k[13]*dt,z+_k[14]*dt,vx+_k[15]*dt,vy+_k[16]*dt,vz+_k[17]*dt,18);
+  const s=dt/6;
+  out[0]=x+(_k[0]+2*_k[6]+2*_k[12]+_k[18])*s;
+  out[1]=y+(_k[1]+2*_k[7]+2*_k[13]+_k[19])*s;
+  out[2]=z+(_k[2]+2*_k[8]+2*_k[14]+_k[20])*s;
+  out[3]=vx+(_k[3]+2*_k[9]+2*_k[15]+_k[21])*s;
+  out[4]=vy+(_k[4]+2*_k[10]+2*_k[16]+_k[22])*s;
+  out[5]=vz+(_k[5]+2*_k[11]+2*_k[17]+_k[23])*s;
+}
+const _rk4out=new Float64Array(6);
+
+function orbitalElements3D(x,y,z,vx,vy,vz){
+  const r=Math.sqrt(x*x+y*y+z*z);
+  const v2=vx*vx+vy*vy+vz*vz;
+  const eps=v2/2-GM/r;
+  const hyperbolic=eps>=0;
+  const a=hyperbolic?GM/(2*eps):-GM/(2*eps);
+  const hx=y*vz-z*vy,hy=z*vx-x*vz,hz=x*vy-y*vx;
+  const hMag=Math.sqrt(hx*hx+hy*hy+hz*hz);
+  const rdotv=(x*vx+y*vy+z*vz);
+  const ex=(v2/GM-1/r)*x-rdotv/GM*vx;
+  const ey=(v2/GM-1/r)*y-rdotv/GM*vy;
+  const ez=(v2/GM-1/r)*z-rdotv/GM*vz;
+  const e=Math.sqrt(ex*ex+ey*ey+ez*ez);
+  const rp=hyperbolic?a*(e-1):a*(1-e);
+  const ra=hyperbolic?Infinity:a*(1+e);
+  const inc=Math.acos(Math.max(-1,Math.min(1,hz/hMag)))*180/Math.PI;
+  return{a,e,rp,ra,inc,hx,hy,hz,ex,ey,ez,hyperbolic};
+}
+
+// ── Shared state ──────────────────────────────────────────────────────────────
+let HORB=500e3, RORB=RE+HORB;
+let V0=Math.sqrt(GM/RORB);
+let T0=2*Math.PI*Math.sqrt(RORB**3/GM);
+let NFRAG=36;
+let atmoEnabled=true;
+let simTime=0, running=false, exploded=false, explodeTime=0;
+let rafId=null, lastTs=null, simSpeed=300;
+let dvMag=1000;
+let launchDv=0;   // extra Δv applied at launch along velocity vector (m/s)
+let frags=[];
+let aliveCount=0;
+let fastForward=false;
+let pendingExplode=false;
+let focusMode=false;
+let showAllOrbits=false;
+let selectedFrag=null;
+let selectedMain=false;
+let simState='idle';
+let mainObj=null;
+
+const SIM_INTERVAL=16;
+const SUB_STEPS=10;
+const TRAIL_LEN=18;
+
+function mulberry32(seed){
+  return function(){
+    seed|=0;seed=seed+0x6D2B79F5|0;
+    let t=Math.imul(seed^seed>>>15,1|seed);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return((t^t>>>14)>>>0)/4294967296;
+  };
+}
+
+function mainPos(t){
+  const th=2*Math.PI*t/T0;
+  return[RORB*Math.cos(th),0,RORB*Math.sin(th)];
+}
+function mainVel(t){
+  const th=2*Math.PI*t/T0;
+  return[-V0*Math.sin(th),0,V0*Math.cos(th)];
+}
+
+function initMainObj(){
+  const[x,y,z]=mainPos(simTime);
+  const[vx,vy,vz]=mainVel(simTime);
+  const vMag=Math.sqrt(vx*vx+vy*vy+vz*vz);
+  const scale=(vMag+launchDv)/vMag;
+  const mvx=vx*scale,mvy=vy*scale,mvz=vz*scale;
+  const r0=Math.sqrt(x*x+y*y+z*z);
+  const e0=(mvx*mvx+mvy*mvy+mvz*mvz)/2-GM/r0;
+  mainObj={x,y,z,vx:mvx,vy:mvy,vz:mvz,alive:true,
+    trail:new Float32Array(TRAIL_LEN*3),
+    trailHead:0,trailLen:0,_lastTrailColor:-1,
+    maxR:RORB,minR:RORB,_e0:e0};
+}
+
+function adaptiveSubs(dt,r){
+  const h=r-RE;
+  const maxDt=h<200e3?2:h<300e3?10:60;
+  return Math.max(6,Math.ceil(dt/maxDt));
+}
+
+// Адаптивный шаг перемотки: чем ниже минимальный перигей — тем меньше шаг
+function adaptiveSkipDt(){
+  if(!exploded||frags.length===0)return 60;
+  let minR=Infinity;
+  for(const f of frags){
+    if(!f.alive)continue;
+    const r=Math.sqrt(f.x*f.x+f.y*f.y+f.z*f.z);
+    if(r<minR)minR=r;
+  }
+  const h=(minR-RE)/1e3; // км
+  if(h<200)return 2;
+  if(h<300)return 5;
+  if(h<400)return 20;
+  return 60;
+}
+
+// Коррекция энергии: каждые N шагов масштабирует скорость осколков
+// чтобы компенсировать численный дрейф RK4 (только без атмосферы)
+const ENERGY_CORRECT_INTERVAL=500;
+let _skipStepCount=0;
+
+function correctFragEnergies(){
+  if(atmoEnabled)return;
+  // Коррекция мины
+  if(mainObj&&mainObj.alive&&!exploded&&mainObj._e0!==undefined){
+    const r=Math.sqrt(mainObj.x*mainObj.x+mainObj.y*mainObj.y+mainObj.z*mainObj.z);
+    if(isFinite(r)&&r>RE){
+      const v2=mainObj.vx*mainObj.vx+mainObj.vy*mainObj.vy+mainObj.vz*mainObj.vz;
+      const currentE=v2/2-GM/r;
+      if(currentE<0){
+        const vTarget2=2*(mainObj._e0+GM/r);
+        if(vTarget2>0){
+          const sc=Math.sqrt(vTarget2/v2);
+          mainObj.vx*=sc;mainObj.vy*=sc;mainObj.vz*=sc;
+        }
+      }
+    }
+  }
+  // Коррекция осколков
+  for(const f of frags){
+    if(!f.alive||f.beyond)continue;
+    if(f._e0===undefined)continue;
+    const r=Math.sqrt(f.x*f.x+f.y*f.y+f.z*f.z);
+    if(!isFinite(r)||r<=RE)continue;
+    const v2=f.vx*f.vx+f.vy*f.vy+f.vz*f.vz;
+    const currentE=v2/2-GM/r;
+    if(currentE>=0)continue;
+    const vTarget2=2*(f._e0+GM/r);
+    if(vTarget2<=0)continue;
+    const scale=Math.sqrt(vTarget2/v2);
+    f.vx*=scale;f.vy*=scale;f.vz*=scale;
+  }
+}
+
+function stepMainObj(dt){
+  if(!mainObj||!mainObj.alive||exploded)return;
+  const r0=Math.sqrt(mainObj.x**2+mainObj.y**2+mainObj.z**2);
+  const nsub=adaptiveSubs(dt,r0);
+  const dts=dt/nsub;
+  let{x,y,z,vx,vy,vz}=mainObj;
+  for(let s=0;s<nsub;s++){
+    const r=Math.sqrt(x*x+y*y+z*z);
+    if(r<RE){mainObj.alive=false;mainObj.escaped=false;document.getElementById('bBoom').disabled=true;break;}
+    if(r>R_OBS){mainObj.alive=false;mainObj.escaped=true;document.getElementById('bBoom').disabled=true;break;}
+    rk4(x,y,z,vx,vy,vz,dts,true,_rk4out);
+    if(!isFinite(_rk4out[0])||!isFinite(_rk4out[1])||!isFinite(_rk4out[2])){mainObj.alive=false;document.getElementById('bBoom').disabled=true;break;}
+    x=_rk4out[0];y=_rk4out[1];z=_rk4out[2];
+    vx=_rk4out[3];vy=_rk4out[4];vz=_rk4out[5];
+  }
+  if(mainObj.alive){
+    if(!fastForward){
+      const base=mainObj.trailHead*3;
+      mainObj.trail[base]=mainObj.x;mainObj.trail[base+1]=mainObj.y;mainObj.trail[base+2]=mainObj.z;
+      mainObj.trailHead=(mainObj.trailHead+1)%TRAIL_LEN;
+      if(mainObj.trailLen<TRAIL_LEN)mainObj.trailLen++;
+    }
+    mainObj.x=x;mainObj.y=y;mainObj.z=z;
+    mainObj.vx=vx;mainObj.vy=vy;mainObj.vz=vz;
+    const r=Math.sqrt(x*x+y*y+z*z);
+    if(r>mainObj.maxR&&r<R_OBS)mainObj.maxR=r;
+    if(r<mainObj.minR)mainObj.minR=r;
+  }
+}
+
+function stepFrags(dt){
+  for(const f of frags){
+    if(!f.alive)continue;
+    let x=f.x,y=f.y,z=f.z,vx=f.vx,vy=f.vy,vz=f.vz;
+    const r0=Math.sqrt(x*x+y*y+z*z);
+    const nsub=adaptiveSubs(dt,r0);
+    const dts=dt/nsub;
+    for(let s=0;s<nsub;s++){
+      const r=Math.sqrt(x*x+y*y+z*z);
+      if(r<RE){f.alive=false;f.escaped=false;aliveCount--;break;}
+      // За границей наблюдений: определяем тип орбиты в момент ухода
+      if(r>R_OBS){
+        const v2=vx*vx+vy*vy+vz*vz;
+        if(v2/2-GM/r>=0){f.alive=false;f.escaped=true;aliveCount--;break;} // гиперболическая — улетел навсегда
+        break; // эллиптическая — за границей наблюдений, прекращаем подшаги, beyond выставится ниже
+      }
+      rk4(x,y,z,vx,vy,vz,dts,true,_rk4out);
+      if(!isFinite(_rk4out[0])||!isFinite(_rk4out[1])||!isFinite(_rk4out[2])){f.alive=false;aliveCount--;break;}
+      x=_rk4out[0];y=_rk4out[1];z=_rk4out[2];
+      vx=_rk4out[3];vy=_rk4out[4];vz=_rk4out[5];
+    }
+    if(f.alive){
+      const r=Math.sqrt(x*x+y*y+z*z);
+      f.beyond=(r>R_OBS);
+      if(!f.beyond){
+        if(!fastForward){
+          const base=f.trailHead*3;
+          f.trail[base]=f.x;f.trail[base+1]=f.y;f.trail[base+2]=f.z;
+          f.trailHead=(f.trailHead+1)%TRAIL_LEN;
+          if(f.trailLen<TRAIL_LEN)f.trailLen++;
+        }
+        if(isFinite(r)&&r>f.maxR)f.maxR=r;
+        if(isFinite(r)&&r<f.minR)f.minR=r;
+      }
+      f.x=x;f.y=y;f.z=z;f.vx=vx;f.vy=vy;f.vz=vz;
+    }
+  }
+}
+
+function explode(){
+  exploded=true; explodeTime=simTime;
+  document.getElementById('bBoom').disabled=true;
+  document.getElementById('stats-panel').classList.add('visible');
+  const[x0,y0,z0]=mainObj&&mainObj.alive?[mainObj.x,mainObj.y,mainObj.z]:mainPos(simTime);
+  const[vx0,vy0,vz0]=mainObj&&mainObj.alive?[mainObj.vx,mainObj.vy,mainObj.vz]:mainVel(simTime);
+  freezeMainOrbit();
+  freezeMainOrbit2D();
+  frags=[];aliveCount=0;
+  const rng=mulberry32(Date.now()|0);
+  const dvDist=document.getElementById('selDvDist').value;
+  for(let i=0;i<NFRAG;i++){
+    const u=rng()*2-1;
+    const phi=rng()*Math.PI*2;
+    const sinPhi=Math.sqrt(1-u*u);
+    let dv;
+    if(dvDist==='exponential'){
+      // Exponential: most fragments slow, rare ones fast; mean = dvMag
+      dv=dvMag*(-Math.log(Math.max(1e-10,rng())));
+      dv=Math.min(dv,dvMag*5); // cap at 5× to avoid extreme outliers
+    } else if(dvDist==='maxwell'){
+      // Maxwell–Boltzmann: sum of 3 gaussian components, σ = dvMag/√3
+      const sig=dvMag/Math.sqrt(3);
+      const g1=(Math.sqrt(-2*Math.log(Math.max(1e-10,rng())))*Math.cos(rng()*2*Math.PI))*sig;
+      const g2=(Math.sqrt(-2*Math.log(Math.max(1e-10,rng())))*Math.cos(rng()*2*Math.PI))*sig;
+      const g3=(Math.sqrt(-2*Math.log(Math.max(1e-10,rng())))*Math.cos(rng()*2*Math.PI))*sig;
+      dv=Math.sqrt(g1*g1+g2*g2+g3*g3);
+    } else {
+      // Uniform (original behaviour)
+      dv=dvMag*(NFRAG>36?(0.8+rng()*0.4):1.0);
+    }
+    const fvx=vx0+dv*sinPhi*Math.cos(phi);
+    const fvy=vy0+dv*u;
+    const fvz=vz0+dv*sinPhi*Math.sin(phi);
+    const fr0=Math.sqrt(x0*x0+y0*y0+z0*z0);
+    const fe0=(fvx*fvx+fvy*fvy+fvz*fvz)/2-GM/fr0;
+    frags.push({
+      x:x0,y:y0,z:z0,
+      vx:fvx,vy:fvy,vz:fvz,
+      hue:15+(i/NFRAG)*60,alive:true,beyond:false,escaped:false,
+      trail:new Float32Array(TRAIL_LEN*3),
+      trailHead:0,trailLen:0,_lastTrailColor:-1,
+      maxR:RORB,minR:RORB,_e0:fe0,
+    });
+    aliveCount++;
+  }
+  build3DFragMeshes();
+  build3DTrailLines();
+  updateStats();
+}
+
+function updateStats(){
+  if(!exploded)return;
+  const total=frags.length;
+  let beyondCount=0,escapedCount=0,deorbitCount=0;
+  let maxApo=-Infinity,minPer=Infinity;
+  for(const f of frags){
+    if(f.alive){
+      if(f.beyond)beyondCount++;
+      if(f.maxR>maxApo)maxApo=f.maxR;
+      if(f.minR<minPer)minPer=f.minR;
+    } else {
+      if(f.escaped)escapedCount++;
+      else deorbitCount++;
+    }
+  }
+  const onOrbit=aliveCount-beyondCount;
+  document.getElementById('sp-alive').textContent=onOrbit;
+  document.getElementById('sp-total').textContent=total;
+  const pct=total>0?(onOrbit/total*100):100;
+  document.getElementById('sp-bar').style.width=pct+'%';
+  document.getElementById('sp-beyond').textContent=beyondCount;
+  document.getElementById('sp-dead').textContent=deorbitCount;
+  document.getElementById('sp-escaped').textContent=escapedCount;
+  document.getElementById('sp-apo').textContent=maxApo>-Infinity?Math.round((maxApo-RE)/1000).toLocaleString('ru-RU'):'—';
+  document.getElementById('sp-per').textContent=minPer<Infinity?Math.round((minPer-RE)/1000).toLocaleString('ru-RU'):'—';
+}
+
+function formatTime(sec){
+  const totalMin=Math.floor(sec/60);
+  const h=Math.floor(totalMin/60),m=totalMin%60;
+  const d=Math.floor(h/24),hd=h%24;
+  const y=Math.floor(d/365),dy=d%365;
+  if(y>0)return`${y} г. ${dy} д. ${hd} ч. ${m} мин`;
+  if(d>0)return`${d} д. ${hd} ч. ${m} мин`;
+  if(h>0)return`${h} ч. ${m} мин`;
+  return`${totalMin} мин`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 3D RENDERER — Three.js (unchanged from v2.5)
+// ══════════════════════════════════════════════════════════════════════════════
+const canvas3=document.getElementById('c3d');
+const renderer=new THREE.WebGLRenderer({canvas:canvas3,antialias:true,alpha:false});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setClearColor(0x03050f,1);
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(45,1,1e3,1e9);
+const _CAM_K=2*Math.tan(22.5*Math.PI/180); // 2*tan(fov/2) для fov=45
+let objSizePx=2.5;
+function camDistMatch(){
+  const cw=document.getElementById('cw');
+  const W=cw.offsetWidth||window.innerWidth,H=cw.offsetHeight||window.innerHeight;
+  return RORB*H/(_CAM_K*Math.min(W,H)*0.44);
+} // базовый размер объектов в пикселях (слайдер)
+camera.position.set(0,0,RORB*3.2);
+
+let camOrtho=null, orthoZoom=1.0;
+function buildOrthoCamera(){
+  const cw=document.getElementById('cw');
+  const w=cw.offsetWidth||window.innerWidth, h=cw.offsetHeight||window.innerHeight;
+  const halfH=RORB*2.4, halfW=halfH*(w/h);
+  camOrtho=new THREE.OrthographicCamera(-halfW,halfW,-halfH,halfH,1e3,1e9);
+  camOrtho.position.set(0,RORB*6,0);
+  camOrtho.lookAt(0,0,0);
+  camOrtho.up.set(0,0,-1);
+}
+function applyOrthoZoom(){
+  if(!camOrtho)return;
+  const cw=document.getElementById('cw');
+  const w=cw.offsetWidth||window.innerWidth, h=cw.offsetHeight||window.innerHeight;
+  const halfH=RORB*2.4/orthoZoom, halfW=halfH*(w/h);
+  camOrtho.left=-halfW;camOrtho.right=halfW;
+  camOrtho.bottom=-halfH;camOrtho.top=halfH;
+  camOrtho.updateProjectionMatrix();
+}
+
+// Lights
+const sun=new THREE.DirectionalLight(0xfff8e8,0.7);
+sun.position.set(1,0.4,0.6).normalize();
+scene.add(sun);
+scene.add(new THREE.AmbientLight(0x2a3a5a,1.8));
+
+// Starfield
+(function(){
+  const geo=new THREE.BufferGeometry();
+  const pos=new Float32Array(3000);
+  for(let i=0;i<1000;i++){
+    const theta=Math.random()*Math.PI*2;
+    const phi=Math.acos(2*Math.random()-1);
+    const r=RE*30+Math.random()*RE*20;
+    pos[i*3]=r*Math.sin(phi)*Math.cos(theta);
+    pos[i*3+1]=r*Math.sin(phi)*Math.sin(theta);
+    pos[i*3+2]=r*Math.cos(phi);
+  }
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  scene.add(new THREE.Points(geo,new THREE.PointsMaterial({color:0xaabbff,size:8000,sizeAttenuation:true})));
+})();
+
+// Earth
+const earthGeo=new THREE.SphereGeometry(RE,32,32);
+const earthMat=new THREE.MeshPhongMaterial({color:0x0d2a5c,emissive:0x071828,specular:0x0a1a33,shininess:5});
+const earthMesh=new THREE.Mesh(earthGeo,earthMat);
+scene.add(earthMesh);
+
+const atmoGeo=new THREE.SphereGeometry(RE*1.025,32,32);
+const atmoMat=new THREE.MeshPhongMaterial({color:0x4488ff,transparent:true,opacity:0.12,side:THREE.FrontSide,depthWrite:false});
+const atmoMesh=new THREE.Mesh(atmoGeo,atmoMat);
+scene.add(atmoMesh);
+
+// Grid
+(function(){
+  const mat=new THREE.LineBasicMaterial({color:0x1a3a6a,transparent:true,opacity:0.5});
+  for(let lat=-60;lat<=60;lat+=30){
+    const phi=lat*Math.PI/180, pts=[];
+    for(let lon=0;lon<=360;lon+=3){
+      const t=lon*Math.PI/180;
+      pts.push(new THREE.Vector3(RE*Math.cos(phi)*Math.cos(t),RE*Math.sin(phi),RE*Math.cos(phi)*Math.sin(t)));
+    }
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),mat));
+  }
+  for(let lon=0;lon<360;lon+=30){
+    const t=lon*Math.PI/180, pts=[];
+    for(let lat=-90;lat<=90;lat+=3){
+      const phi=lat*Math.PI/180;
+      pts.push(new THREE.Vector3(RE*Math.cos(phi)*Math.cos(t),RE*Math.sin(phi),RE*Math.cos(phi)*Math.sin(t)));
+    }
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),mat));
+  }
+})();
+
+// Reference orbit
+let refOrbitLine=null;
+function updateRefOrbit(){
+  if(refOrbitLine){refOrbitLine.geometry.dispose();refOrbitLine.material.dispose();scene.remove(refOrbitLine);}
+  const pts=[];
+  for(let i=0;i<=128;i++){
+    const th=i/128*Math.PI*2;
+    pts.push(new THREE.Vector3(RORB*Math.cos(th),0,RORB*Math.sin(th)));
+  }
+  refOrbitLine=new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({color:0x4a9eff,transparent:true,opacity:0.3})
+  );
+  scene.add(refOrbitLine);
+}
+updateRefOrbit();
+
+// Main object current orbit line (live solid → frozen dashed after explosion)
+let mainOrbitLine=null;
+let mainOrbitFrozen=false;
+
+function buildMainOrbitLine(x,y,z,vx,vy,vz,frozen){
+  if(mainOrbitLine){mainOrbitLine.geometry.dispose();mainOrbitLine.material.dispose();scene.remove(mainOrbitLine);mainOrbitLine=null;}
+  const el=orbitalElements3D(x,y,z,vx,vy,vz);
+  if(!el)return;
+  const{a,e,hx,hy,hz,ex,ey,ez,hyperbolic}=el;
+  if(a<=0)return;
+  const eMag=Math.sqrt(ex*ex+ey*ey+ez*ez)||1;
+  const px=ex/eMag,py=ey/eMag,pz=ez/eMag;
+  const qx=hy*pz-hz*py,qy=hz*px-hx*pz,qz=hx*py-hy*px;
+  const qMag=Math.sqrt(qx*qx+qy*qy+qz*qz)||1;
+  const qnx=qx/qMag,qny=qy/qMag,qnz=qz/qMag;
+  const pts=[];
+  const segs=frozen?96:64;
+  if(hyperbolic){
+    // Hyperbolic branch: nu in (-nuMax, +nuMax), r = a*(e^2-1)/(1+e*cos(nu))
+    const nuMax=Math.acos(-1/e)*0.98; // stay away from asymptote
+    const rMax=RE*60; // clip very distant points
+    for(let i=0;i<=segs;i++){
+      const nu=-nuMax+i/segs*2*nuMax;
+      const r=a*(e*e-1)/(1+e*Math.cos(nu));
+      if(!isFinite(r)||r<0||r>rMax)continue;
+      const cx2=r*Math.cos(nu),cy2=r*Math.sin(nu);
+      pts.push(new THREE.Vector3(cx2*px+cy2*qnx,cx2*py+cy2*qny,cx2*pz+cy2*qnz));
+    }
+  } else {
+    if(a>1e9)return;
+    for(let i=0;i<=segs;i++){
+      const E=i/segs*Math.PI*2;
+      const nu=2*Math.atan2(Math.sqrt(1+e)*Math.sin(E/2),Math.sqrt(1-e)*Math.cos(E/2));
+      const r=a*(1-e*e)/(1+e*Math.cos(nu));
+      if(!isFinite(r)||r>R_OBS)continue;
+      const cx2=r*Math.cos(nu),cy2=r*Math.sin(nu);
+      pts.push(new THREE.Vector3(cx2*px+cy2*qnx,cx2*py+cy2*qny,cx2*pz+cy2*qnz));
+    }
+  }
+  if(pts.length<2)return;
+  const mat=frozen
+    ? new THREE.LineDashedMaterial({color:0xffdd00,transparent:true,opacity:0.55,dashSize:RE*0.04,gapSize:RE*0.03})
+    : new THREE.LineBasicMaterial({color:0xffdd00,transparent:true,opacity:0.45});
+  mainOrbitLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),mat);
+  if(frozen)mainOrbitLine.computeLineDistances();
+  scene.add(mainOrbitLine);
+}
+
+function updateMainOrbitLine(){
+  if(mainOrbitFrozen)return; // don't rebuild frozen orbit
+  if(!mainObj||!mainObj.alive){mainOrbitFrozen=false;return;}
+  buildMainOrbitLine(mainObj.x,mainObj.y,mainObj.z,mainObj.vx,mainObj.vy,mainObj.vz,false);
+}
+
+function freezeMainOrbit(){
+  if(!mainObj)return;
+  mainOrbitFrozen=true;
+  buildMainOrbitLine(mainObj.x,mainObj.y,mainObj.z,mainObj.vx,mainObj.vy,mainObj.vz,true);
+}
+const mainGeo=new THREE.SphereGeometry(1,8,8);
+const mainMat=new THREE.MeshBasicMaterial({color:0xffdd00});
+const mainMesh=new THREE.Mesh(mainGeo,mainMat);
+scene.add(mainMesh);
+const mainGlowGeo=new THREE.SphereGeometry(1,8,8);
+const mainGlowMat=new THREE.MeshBasicMaterial({color:0xffdd00,transparent:true,opacity:0.25});
+const mainGlowMesh=new THREE.Mesh(mainGlowGeo,mainGlowMat);
+scene.add(mainGlowMesh);
+
+// Fragment meshes
+const _sharedFragGeo=new THREE.SphereGeometry(1,6,6);
+const fragMeshes=[];
+let selOrbitLine=null;
+const allOrbitLines=[];
+
+function build3DFragMeshes(){
+  fragMeshes.forEach(m=>{m.material.dispose();scene.remove(m);});
+  fragMeshes.length=0;
+  for(let i=0;i<frags.length;i++){
+    const mat=new THREE.MeshBasicMaterial({color:0xffee88});
+    const m=new THREE.Mesh(_sharedFragGeo,mat);
+    fragMeshes.push(m);
+    scene.add(m);
+    frags[i]._lastColor=-1;
+  }
+}
+
+function fragColorHex(f){
+  if(!f.alive)return 0x333344;
+  const h=Math.sqrt(f.x*f.x+f.y*f.y+f.z*f.z)-RE;
+  if(atmoEnabled){
+    const blend=Math.max(0,Math.min(1,1-(h-120e3)/280e3));
+    if(blend>0.5)return 0xff4400;
+  }
+  return 0xffee88;
+}
+
+// Trail lines
+const trailLines=[];
+let mainTrailLine=null;
+
+function build3DTrailLines(){
+  trailLines.forEach(l=>scene.remove(l));trailLines.length=0;
+  for(let i=0;i<frags.length;i++){
+    const mat=new THREE.LineBasicMaterial({color:0xffaa22,transparent:true,opacity:0.5});
+    const positions=new Float32Array(TRAIL_LEN*3);
+    const geo=new THREE.BufferGeometry();
+    const attr=new THREE.BufferAttribute(positions,3);
+    attr.setUsage(THREE.DynamicDrawUsage);
+    geo.setAttribute('position',attr);
+    geo.setDrawRange(0,0);
+    const line=new THREE.Line(geo,mat);
+    line._posAttr=attr;
+    trailLines.push(line);
+    scene.add(line);
+  }
+}
+
+function buildMainTrailLine(){
+  if(mainTrailLine){mainTrailLine.geometry.dispose();mainTrailLine.material.dispose();scene.remove(mainTrailLine);}
+  const positions=new Float32Array(TRAIL_LEN*3);
+  const geo=new THREE.BufferGeometry();
+  const attr=new THREE.BufferAttribute(positions,3);
+  attr.setUsage(THREE.DynamicDrawUsage);
+  geo.setAttribute('position',attr);
+  geo.setDrawRange(0,0);
+  mainTrailLine=new THREE.Line(geo,new THREE.LineBasicMaterial({color:0xffdd00,transparent:true,opacity:0.5}));
+  mainTrailLine._posAttr=attr;
+  scene.add(mainTrailLine);
+}
+
+function updateMainTrail(){
+  if(!mainTrailLine||!mainObj||!mainObj.alive||mainObj.trailLen<2){
+    if(mainTrailLine)mainTrailLine.visible=false;return;
+  }
+  mainTrailLine.visible=true;
+  const arr=mainTrailLine._posAttr.array;
+  const len=mainObj.trailLen;
+  let idx=(mainObj.trailHead-len+TRAIL_LEN)%TRAIL_LEN;
+  for(let k=0;k<len;k++){
+    const base=idx*3;
+    arr[k*3]=mainObj.trail[base];arr[k*3+1]=mainObj.trail[base+1];arr[k*3+2]=mainObj.trail[base+2];
+    idx=(idx+1)%TRAIL_LEN;
+  }
+  mainTrailLine._posAttr.needsUpdate=true;
+  mainTrailLine.geometry.setDrawRange(0,len);
+}
+
+function updateTrails(){
+  for(let i=0;i<frags.length;i++){
+    const f=frags[i], line=trailLines[i];
+    if(!f.alive||f.trailLen<2){line.visible=false;continue;}
+    line.visible=true;
+    const arr=line._posAttr.array;
+    const len=f.trailLen;
+    let idx=(f.trailHead-len+TRAIL_LEN)%TRAIL_LEN;
+    for(let k=0;k<len;k++){
+      const base=idx*3;
+      arr[k*3]=f.trail[base];arr[k*3+1]=f.trail[base+1];arr[k*3+2]=f.trail[base+2];
+      idx=(idx+1)%TRAIL_LEN;
+    }
+    line._posAttr.needsUpdate=true;
+    line.geometry.setDrawRange(0,len);
+    const newColor=fragColorHex(f);
+    if(f._lastTrailColor!==newColor){line.material.color.setHex(newColor);f._lastTrailColor=newColor;}
+  }
+}
+
+// Camera orbit
+let camTheta=0, camPhi=Math.PI/4, camDist=RORB*2.745;
+let camTargetX=0, camTargetY=0, camTargetZ=0; // pan offset
+let dragActive=false, dragBtn=-1, lastMX=0, lastMY=0;
+let dragMode='orbit'; // 'orbit' or 'pan'
+let mouseDownX=0, mouseDownY=0, mouseMoved=false;
+
+function updateCamera(){
+  camera.position.set(
+    camTargetX+camDist*Math.sin(camPhi)*Math.cos(camTheta),
+    camTargetY+camDist*Math.cos(camPhi),
+    camTargetZ+camDist*Math.sin(camPhi)*Math.sin(camTheta)
+  );
+  camera.lookAt(camTargetX,camTargetY,camTargetZ);
+}
+updateCamera();
+
+function activeCamera3D(){return is2D&&camOrtho?camOrtho:camera;}
+
+// Raycaster
+const raycaster=new THREE.Raycaster();
+raycaster.params.Points={threshold:RE*0.05};
+
+function hitTestEarth(clientX, clientY){
+  const rect=canvas3.getBoundingClientRect();
+  const mouse=new THREE.Vector2(
+    ((clientX-rect.left)/rect.width)*2-1,
+    -((clientY-rect.top)/rect.height)*2+1
+  );
+  raycaster.setFromCamera(mouse, camera);
+  return raycaster.intersectObject(earthMesh).length>0;
+}
+
+// Pan: move camTarget in camera's right/up plane
+function applyPan(dxPx, dyPx){
+  // pan speed proportional to distance
+  const speed=camDist*0.0007;
+  // camera right vector
+  const sinT=Math.sin(camTheta), cosT=Math.cos(camTheta);
+  const sinP=Math.sin(camPhi),   cosP=Math.cos(camPhi);
+  // right = cross(up_world, forward) -- but easier: derivative of position wrt theta
+  const rx= Math.sin(camTheta);
+  const ry= 0;
+  const rz=-Math.cos(camTheta);
+  // up in camera = derivative of position wrt -phi, normalised
+  const ux=-cosP*Math.cos(camTheta);
+  const uy= sinP;
+  const uz=-cosP*Math.sin(camTheta);
+  camTargetX+=(-dxPx*rx - dyPx*ux)*speed;
+  camTargetY+=(-dxPx*ry - dyPx*uy)*speed;
+  camTargetZ+=(-dxPx*rz - dyPx*uz)*speed;
+}
+
+function updateSelOrbit3D(){
+  if(selOrbitLine){scene.remove(selOrbitLine);selOrbitLine=null;}
+  if(selectedFrag===null||!frags[selectedFrag]||!frags[selectedFrag].alive)return;
+  const f=frags[selectedFrag];
+  const el=orbitalElements3D(f.x,f.y,f.z,f.vx,f.vy,f.vz);
+  if(!el)return;
+  const{a,e,hx,hy,hz,ex,ey,ez,hyperbolic}=el;
+  const eMag=Math.sqrt(ex*ex+ey*ey+ez*ez)||1;
+  const px=ex/eMag,py=ey/eMag,pz=ez/eMag;
+  const qx=(hy*pz-hz*py),qy=(hz*px-hx*pz),qz=(hx*py-hy*px);
+  const qMag=Math.sqrt(qx*qx+qy*qy+qz*qz)||1;
+  const qnx=qx/qMag,qny=qy/qMag,qnz=qz/qMag;
+  const pts=[];
+  if(hyperbolic){
+    const nuMax=Math.acos(-1/e)*0.98;
+    const rMax=RE*60;
+    for(let i=0;i<=128;i++){
+      const nu=-nuMax+i/128*2*nuMax;
+      const r=a*(e*e-1)/(1+e*Math.cos(nu));
+      if(!isFinite(r)||r<0||r>rMax)continue;
+      const cx2=r*Math.cos(nu),cy2=r*Math.sin(nu);
+      pts.push(new THREE.Vector3(cx2*px+cy2*qnx,cx2*py+cy2*qny,cx2*pz+cy2*qnz));
+    }
+  } else {
+    for(let i=0;i<=128;i++){
+      const E=i/128*Math.PI*2;
+      const nu=2*Math.atan2(Math.sqrt(1+e)*Math.sin(E/2),Math.sqrt(1-e)*Math.cos(E/2));
+      const r=a*(1-e*e)/(1+e*Math.cos(nu));
+      const cx2=r*Math.cos(nu),cy2=r*Math.sin(nu);
+      pts.push(new THREE.Vector3(cx2*px+cy2*qnx,cx2*py+cy2*qny,cx2*pz+cy2*qnz));
+    }
+  }
+  if(pts.length<2)return;
+  selOrbitLine=new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({color:0x00ffb4,transparent:true,opacity:0.8})
+  );
+  scene.add(selOrbitLine);
+}
+
+function clearAllOrbitLines3D(){
+  allOrbitLines.forEach(l=>{l.geometry.dispose();l.material.dispose();scene.remove(l);});
+  allOrbitLines.length=0;
+}
+
+function buildAllOrbitLines3D(){
+  clearAllOrbitLines3D();
+  const mat=new THREE.LineBasicMaterial({color:0x4a9eff,transparent:true,opacity:0.55});
+  for(const f of frags){
+    if(!f.alive||f.beyond)continue;
+    const el=orbitalElements3D(f.x,f.y,f.z,f.vx,f.vy,f.vz);
+    if(!el||el.a<=0)continue;
+    const{a,e,hx,hy,hz,ex,ey,ez,hyperbolic}=el;
+    const eMag=Math.sqrt(ex*ex+ey*ey+ez*ez)||1;
+    const px=ex/eMag,py=ey/eMag,pz=ez/eMag;
+    const qx=(hy*pz-hz*py),qy=(hz*px-hx*pz),qz=(hx*py-hy*px);
+    const qMag=Math.sqrt(qx*qx+qy*qy+qz*qz)||1;
+    const qnx=qx/qMag,qny=qy/qMag,qnz=qz/qMag;
+    const pts=[];
+    if(hyperbolic){
+      const nuMax=Math.acos(-1/e)*0.98, rMax=RE*60;
+      for(let i=0;i<=128;i++){
+        const nu=-nuMax+i/128*2*nuMax;
+        const r=a*(e*e-1)/(1+e*Math.cos(nu));
+        if(!isFinite(r)||r<0||r>rMax)continue;
+        pts.push(new THREE.Vector3(r*Math.cos(nu)*px+r*Math.sin(nu)*qnx,r*Math.cos(nu)*py+r*Math.sin(nu)*qny,r*Math.cos(nu)*pz+r*Math.sin(nu)*qnz));
+      }
+    } else {
+      if(a>1e9)continue;
+      // Iterate over eccentric anomaly E for uniform arc-length distribution
+      // avoids coarse segments at apogee for high-eccentricity orbits
+      const segs=128;
+      for(let i=0;i<=segs;i++){
+        const E=i/segs*Math.PI*2;
+        const nu=2*Math.atan2(Math.sqrt(1+e)*Math.sin(E/2),Math.sqrt(1-e)*Math.cos(E/2));
+        const r=a*(1-e*e)/(1+e*Math.cos(nu));
+        if(!isFinite(r)||r>R_OBS)continue;
+        pts.push(new THREE.Vector3(r*Math.cos(nu)*px+r*Math.sin(nu)*qnx,r*Math.cos(nu)*py+r*Math.sin(nu)*qny,r*Math.cos(nu)*pz+r*Math.sin(nu)*qnz));
+      }
+    }
+    if(pts.length<2)continue;
+    const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),mat.clone());
+    allOrbitLines.push(line);
+    scene.add(line);
+  }
+}
+
+function updateFragInfo(){
+  const infoEl=document.getElementById('hud-obj-info');
+  // Determine target: selected frag or mainObj
+  let el=null, apo=null, per=null;
+  if(selectedFrag!==null&&frags[selectedFrag]&&frags[selectedFrag].alive){
+    const f=frags[selectedFrag];
+    el=orbitalElements3D(f.x,f.y,f.z,f.vx,f.vy,f.vz);
+    apo=el&&!el.hyperbolic?Math.round((f.maxR-RE)/1000):null;
+    per=el?Math.round((f.minR-RE)/1000):null;
+  } else if(selectedMain&&mainObj&&mainObj.alive){
+    el=orbitalElements3D(mainObj.x,mainObj.y,mainObj.z,mainObj.vx,mainObj.vy,mainObj.vz);
+    apo=el&&!el.hyperbolic?Math.round((mainObj.maxR-RE)/1000):null;
+    per=el?Math.round((mainObj.minR-RE)/1000):null;
+  }
+  if(!el){infoEl.style.display='none';updateFocusBtn();return;}
+  infoEl.style.display='';
+  document.getElementById('hh-apo').textContent=el.hyperbolic?'∞':(apo!==null?apo.toLocaleString('ru-RU'):'—');
+  document.getElementById('hh-per').textContent=per!==null?per.toLocaleString('ru-RU'):'—';
+  document.getElementById('hh-inc').textContent=el.inc.toFixed(1);
+  document.getElementById('hh-ecc').textContent=el.e.toFixed(4);
+  updateFocusBtn();
+}
+
+// 3D resize
+function resize3D(){
+  if(!window._camUserZoomed) camDist=camDistMatch();
+  const cw=document.getElementById('cw');
+  const w=cw.offsetWidth, h=cw.offsetHeight;
+  renderer.setSize(w,h,false);
+  camera.aspect=w/h;
+  camera.updateProjectionMatrix();
+  if(camOrtho)applyOrthoZoom();
+}
+
+let earthRot=0;
+function render3D(){
+  earthRot+=0.0002;
+  earthMesh.rotation.y=earthRot;
+  atmoMesh.rotation.y=earthRot*0.98;
+
+  if(!exploded){
+    if(mainObj&&mainObj.alive){
+      mainMesh.position.set(mainObj.x,mainObj.y,mainObj.z);
+      mainGlowMesh.position.set(mainObj.x,mainObj.y,mainObj.z);
+      mainMesh.visible=true;mainGlowMesh.visible=true;
+      // Nonlinear scale: visible size grows slowly with distance (same as fragments)
+      const _zoom3=camDistMatch()/camDist;
+      const _minePx=objSizePx*Math.max(0.8,Math.min(2.4,1+0.7*Math.log2(Math.max(1,_zoom3))));
+      const _mineWR=_minePx*camDist*_CAM_K/renderer.domElement.height;
+      mainMesh.scale.setScalar(_mineWR);
+      mainGlowMesh.scale.setScalar(_mineWR*2.8);
+    } else {
+      mainMesh.visible=false;mainGlowMesh.visible=false;
+    }
+    updateMainTrail();
+    updateMainOrbitLine();
+  } else {
+    mainMesh.visible=false;mainGlowMesh.visible=false;
+    for(let i=0;i<frags.length;i++){
+      const f=frags[i],m=fragMeshes[i];
+      if(!m)continue;
+      if(f.alive&&!f.beyond){
+        m.position.set(f.x,f.y,f.z);m.visible=true;
+        const _zoom3f=camDistMatch()/camDist;
+        const _isSelected=(i===selectedFrag);
+        const _fragPx3=objSizePx*Math.max(0.6,Math.min(1.8,0.75+0.55*Math.log2(Math.max(1,_zoom3f))))
+          *(_isSelected?1.8:1.0);
+        const _fragWR=_fragPx3*camDist*_CAM_K/renderer.domElement.height;
+        m.scale.setScalar(_fragWR);
+        const newColor=_isSelected?0xffffff:fragColorHex(f);
+        if(f._lastColor!==newColor){m.material.color.setHex(newColor);f._lastColor=newColor;}
+      } else {m.visible=false;}
+    }
+    updateTrails();
+    if(showAllOrbits) buildAllOrbitLines3D();
+    else clearAllOrbitLines3D();
+    if(selectedFrag!==null&&frags[selectedFrag]?.alive){
+      updateSelOrbit3D();updateFragInfo();
+    }
+  }
+
+  document.getElementById('ht').textContent=formatTime(simTime);
+  if(!exploded){
+    const _anyAlive3=mainObj&&mainObj.alive;
+    if(_anyAlive3) document.getElementById('hv').textContent=(simTime/T0).toFixed(2);
+    const _r=mainObj&&mainObj.alive?Math.sqrt(mainObj.x**2+mainObj.y**2+mainObj.z**2):RORB;
+    document.getElementById('hh').textContent=Math.round((_r-RE)/1000);
+    const _vel=mainObj&&mainObj.alive?Math.sqrt(mainObj.vx**2+mainObj.vy**2+mainObj.vz**2):null;
+    document.getElementById('hvel').textContent=_vel!==null?(_vel/1000).toFixed(2):'—';
+  } else {
+    const _sel=selectedFrag!==null&&frags[selectedFrag]&&frags[selectedFrag].alive?frags[selectedFrag]:null;
+    if(_sel){
+      const _elv=orbitalElements3D(_sel.x,_sel.y,_sel.z,_sel.vx,_sel.vy,_sel.vz);
+      if(_elv&&!_elv.hyperbolic&&_elv.a>0){
+        const _Tf=2*Math.PI*Math.sqrt(_elv.a**3/GM);
+        document.getElementById('hv').textContent=((simTime-explodeTime)/_Tf).toFixed(2);
+      } else { document.getElementById('hv').textContent='—'; }
+      const _r=Math.sqrt(_sel.x**2+_sel.y**2+_sel.z**2);
+      document.getElementById('hh').textContent=Math.round((_r-RE)/1000);
+      document.getElementById('hvel').textContent=(Math.sqrt(_sel.vx**2+_sel.vy**2+_sel.vz**2)/1000).toFixed(2);
+    } else {
+      document.getElementById('hv').textContent=(simTime/T0).toFixed(2);
+      document.getElementById('hh').textContent='—';
+      document.getElementById('hvel').textContent='—';
+    }
+  }
+  document.getElementById('hud-deorbit').style.display=(mainObj&&!mainObj.alive&&!exploded&&!mainObj.escaped)?'':'none';
+  document.getElementById('hud-escape').style.display=(mainObj&&!mainObj.alive&&!exploded&&mainObj.escaped)?'':'none';
+
+  // Focus tracking
+  if(focusMode){
+    let fx=null,fy=null,fz=null;
+    if(selectedFrag!==null&&frags[selectedFrag]&&frags[selectedFrag].alive){
+      const f=frags[selectedFrag];fx=f.x;fy=f.y;fz=f.z;
+    } else if(selectedMain&&mainObj&&mainObj.alive){
+      fx=mainObj.x;fy=mainObj.y;fz=mainObj.z;
+    }
+    if(fx!==null){camTargetX=fx;camTargetY=fy;camTargetZ=fz;updateCamera();}
+    else setFocusMode(false);
+  }
+
+  renderer.render(scene,activeCamera3D());
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 2D RENDERER — Canvas 2D
+// ══════════════════════════════════════════════════════════════════════════════
+const canvas2=document.getElementById('c2d');
+const ctx2=canvas2.getContext('2d');
+const DPR=Math.min(window.devicePixelRatio||1,2);
+let W2=0, H2=0;
+
+// 2D camera state (independent from 3D)
+let zoom2=1.0, camX2=0, camY2=0;
+// 2D pan drag
+let drag2=false, drag2StartX=0, drag2StartY=0, cam2StartX=0, cam2StartY=0;
+// 2D pinch
+let pinch2Dist0=null, pinch2Zoom0=null, pinch2MidX=0, pinch2MidY=0, touch2CamX0=0, touch2CamY0=0;
+let touch2DragX=0, touch2DragY=0;
+
+function resize2D(){
+  const cw=document.getElementById('cw');
+  W2=cw.offsetWidth; H2=cw.offsetHeight;
+  canvas2.width=W2*DPR; canvas2.height=H2*DPR;
+  ctx2.setTransform(DPR,0,0,DPR,0,0);
+}
+
+// Seeded starfield for 2D (static positions)
+let stars2=null;
+function buildStars2(){
+  const rng=mulberry32(42);
+  stars2=[];
+  for(let i=0;i<300;i++){
+    stars2.push({x:rng(),y:rng(),r:rng()*1.3,a:0.2+rng()*0.5});
+  }
+}
+
+function S2_0(){return Math.min(W2,H2)*0.44/RORB;}
+function S2(){return S2_0()*zoom2;}
+function ocx2(){return W2/2+camX2;}
+function ocy2(){return H2/2+camY2;}
+
+// 2D orbital elements (XZ plane — orbit is in XZ)
+function orbitalElements2D(x,y,z,vx,vy,vz){
+  // Use full 3D elements for accuracy (vy included — handles inclined orbits correctly)
+  const el=orbitalElements3D(x,y,z,vx,vy,vz);
+  if(!el)return null;
+  const{a,e,rp,ra,ex,ey,ez,hyperbolic}=el;
+  // Project eccentricity vector onto XZ plane to get screen orientation angle
+  const omega=Math.atan2(ez,ex);
+  return{a,e,rp,ra,omega,hyperbolic};
+}
+
+function drawFragOrbit2D(f){
+  const el=orbitalElements2D(f.x,f.y,f.z,f.vx,f.vy,f.vz);
+  if(!el)return;
+  const{a,e,rp,ra,omega,hyperbolic}=el;
+  if(a<=0)return;
+  const s=S2(), cx=ocx2(), cy=ocy2();
+  const omegaScreen=Math.PI/2-omega;
+
+  ctx2.save();
+  ctx2.translate(cx,cy);
+  ctx2.rotate(-omegaScreen);
+  if(hyperbolic){
+    const nuMax=Math.acos(-1/e)*0.97;
+    const segs=80;
+    const rMax=RE*60;
+    ctx2.beginPath();
+    let first=true;
+    for(let i=0;i<=segs;i++){
+      const nu=-nuMax+i/segs*2*nuMax;
+      const r=a*(e*e-1)/(1+e*Math.cos(nu));
+      if(!isFinite(r)||r<0||r>rMax){first=true;continue;}
+      const lx=-r*Math.cos(nu), ly=r*Math.sin(nu);
+      if(first){ctx2.moveTo(lx*s,ly*s);first=false;}
+      else ctx2.lineTo(lx*s,ly*s);
+    }
+    ctx2.strokeStyle='rgba(0,255,180,0.75)';
+    ctx2.lineWidth=1.5;
+    ctx2.setLineDash([6,5]);
+    ctx2.stroke();
+    ctx2.setLineDash([]);
+  } else {
+    if(a>1e9){ctx2.restore();return;}
+    const b=a*Math.sqrt(Math.max(0,1-e*e));
+    const c=a*e;
+    ctx2.translate(+c*s,0);
+    ctx2.beginPath();
+    ctx2.ellipse(0,0,a*s,b*s,0,0,2*Math.PI);
+    ctx2.strokeStyle='rgba(0,255,180,0.75)';
+    ctx2.lineWidth=1.5;
+    ctx2.setLineDash([6,5]);
+    ctx2.stroke();
+    ctx2.setLineDash([]);
+  }
+  ctx2.restore();
+}
+
+function drawMainOrbit2D(frozen){
+  if(!mainObj||!mainObj.alive)return;
+  const el=orbitalElements2D(mainObj.x,mainObj.y,mainObj.z,mainObj.vx,mainObj.vy,mainObj.vz);
+  if(!el)return;
+  const{a,e,rp,ra,omega,hyperbolic}=el;
+  if(a<=0)return;
+  const s=S2(), cx=ocx2(), cy=ocy2();
+  const omegaScreen=Math.PI/2-omega;
+  const strokeStyle=frozen?'rgba(255,221,0,0.55)':'rgba(255,221,0,0.4)';
+  ctx2.save();
+  ctx2.translate(cx,cy);
+  ctx2.rotate(-omegaScreen);
+  if(hyperbolic){
+    const nuMax=Math.acos(-1/e)*0.97;
+    const segs=80;
+    const rMax=RE*60;
+    ctx2.beginPath();
+    let first=true;
+    for(let i=0;i<=segs;i++){
+      const nu=-nuMax+i/segs*2*nuMax;
+      const r=a*(e*e-1)/(1+e*Math.cos(nu));
+      if(!isFinite(r)||r<0||r>rMax){first=true;continue;}
+      // local orbital coords → screen (with omegaScreen rotation already applied)
+      const lx=-r*Math.cos(nu), ly=r*Math.sin(nu);
+      if(first){ctx2.moveTo(lx*s,ly*s);first=false;}
+      else ctx2.lineTo(lx*s,ly*s);
+    }
+    ctx2.strokeStyle=strokeStyle;
+    ctx2.lineWidth=frozen?1.5:1.2;
+    if(frozen)ctx2.setLineDash([6,5]);
+    ctx2.stroke();
+    ctx2.setLineDash([]);
+  } else {
+    if(a>1e9){ctx2.restore();return;}
+    const b=a*Math.sqrt(Math.max(0,1-e*e));
+    const c=a*e;
+    ctx2.translate(+c*s,0);
+    ctx2.beginPath();
+    ctx2.ellipse(0,0,a*s,b*s,0,0,2*Math.PI);
+    ctx2.strokeStyle=strokeStyle;
+    ctx2.lineWidth=frozen?1.5:1.2;
+    if(frozen)ctx2.setLineDash([6,5]);
+    ctx2.stroke();
+    ctx2.setLineDash([]);
+  }
+  ctx2.restore();
+}
+
+// Frozen main orbit snapshot for 2D (set at explosion moment)
+let frozenMainOrbit2D=null;
+
+function freezeMainOrbit2D(){
+  if(!mainObj||!mainObj.alive){frozenMainOrbit2D=null;return;}
+  const el=orbitalElements2D(mainObj.x,mainObj.y,mainObj.z,mainObj.vx,mainObj.vy,mainObj.vz);
+  frozenMainOrbit2D=el||null;
+}
+
+function drawFrozenMainOrbit2D(){
+  if(!frozenMainOrbit2D)return;
+  const{a,e,rp,ra,omega,hyperbolic}=frozenMainOrbit2D;
+  if(a<=0)return;
+  const s=S2(), cx=ocx2(), cy=ocy2();
+  const omegaScreen=Math.PI/2-omega;
+  ctx2.save();
+  ctx2.translate(cx,cy);
+  ctx2.rotate(-omegaScreen);
+  if(hyperbolic){
+    const nuMax=Math.acos(-1/e)*0.97;
+    const segs=80;
+    const rMax=RE*60;
+    ctx2.beginPath();
+    let first=true;
+    for(let i=0;i<=segs;i++){
+      const nu=-nuMax+i/segs*2*nuMax;
+      const r=a*(e*e-1)/(1+e*Math.cos(nu));
+      if(!isFinite(r)||r<0||r>rMax){first=true;continue;}
+      const lx=-r*Math.cos(nu), ly=r*Math.sin(nu);
+      if(first){ctx2.moveTo(lx*s,ly*s);first=false;}
+      else ctx2.lineTo(lx*s,ly*s);
+    }
+    ctx2.strokeStyle='rgba(255,221,0,0.55)';
+    ctx2.lineWidth=1.5;
+    ctx2.setLineDash([6,5]);
+    ctx2.stroke();
+    ctx2.setLineDash([]);
+  } else {
+    if(a>1e9){ctx2.restore();return;}
+    const b=a*Math.sqrt(Math.max(0,1-e*e));
+    const c=a*e;
+    ctx2.translate(+c*s,0);
+    ctx2.beginPath();
+    ctx2.ellipse(0,0,a*s,b*s,0,0,2*Math.PI);
+    ctx2.strokeStyle='rgba(255,221,0,0.55)';
+    ctx2.lineWidth=1.5;
+    ctx2.setLineDash([6,5]);
+    ctx2.stroke();
+    ctx2.setLineDash([]);
+  }
+  ctx2.restore();
+}
+
+function render2D(){
+  ctx2.clearRect(0,0,W2,H2);
+  ctx2.fillStyle='#03050f';
+  ctx2.fillRect(0,0,W2,H2);
+
+  // Stars
+  if(stars2){
+    for(const st of stars2){
+      ctx2.fillStyle=`rgba(180,200,255,${st.a})`;
+      ctx2.beginPath();
+      ctx2.arc(st.x*W2,st.y*H2,st.r,0,2*Math.PI);
+      ctx2.fill();
+    }
+  }
+
+  const s=S2(), cx=ocx2(), cy=ocy2();
+
+  // Reference orbit (dashed)
+  ctx2.beginPath();
+  ctx2.arc(cx,cy,RORB*s,0,2*Math.PI);
+  ctx2.strokeStyle='rgba(74,158,255,0.28)';
+  ctx2.lineWidth=1;
+  ctx2.setLineDash([5,7]);
+  ctx2.stroke();
+  ctx2.setLineDash([]);
+
+  // Earth glow (thin halo only — no atmosphere sphere)
+  const glowR=RE*s;
+  const grd=ctx2.createRadialGradient(cx,cy,glowR*0.85,cx,cy,glowR*1.18);
+  grd.addColorStop(0,'rgba(74,130,255,0.18)');
+  grd.addColorStop(0.5,'rgba(60,100,220,0.07)');
+  grd.addColorStop(1,'rgba(30,60,180,0)');
+  ctx2.beginPath();
+  ctx2.arc(cx,cy,glowR*1.18,0,2*Math.PI);
+  ctx2.fillStyle=grd;
+  ctx2.fill();
+
+  // Earth
+  ctx2.beginPath();
+  ctx2.arc(cx,cy,glowR,0,2*Math.PI);
+  ctx2.fillStyle='#0d2a5c';
+  ctx2.fill();
+  ctx2.strokeStyle='#4a9eff';
+  ctx2.lineWidth=1.5;
+  ctx2.stroke();
+
+  // Earth grid lines (simple latitude/longitude circles projected to XZ)
+  ctx2.strokeStyle='rgba(26,58,106,0.4)';
+  ctx2.lineWidth=0.5;
+  for(let lat=-60;lat<=60;lat+=30){
+    const cosLat=Math.cos(lat*Math.PI/180);
+    const r=glowR*cosLat;
+    if(r>2){
+      ctx2.beginPath();
+      ctx2.arc(cx,cy,r,0,2*Math.PI);
+      ctx2.stroke();
+    }
+  }
+
+  if(!exploded){
+    // Main object orbit (live)
+    if(mainObj&&mainObj.alive) drawMainOrbit2D(false);
+    // Main object in XZ plane: x→screen x, z→screen y (inverted)
+    if(mainObj&&mainObj.alive){
+      const mx=cx-mainObj.z*s, my=cy+mainObj.x*s;
+      // Trail
+      if(mainObj.trailLen>1){
+        ctx2.beginPath();
+        const len=mainObj.trailLen;
+        let idx=(mainObj.trailHead-len+TRAIL_LEN)%TRAIL_LEN;
+        ctx2.moveTo(cx-mainObj.trail[idx*3+2]*s, cy+mainObj.trail[idx*3]*s);
+        for(let k=1;k<len;k++){
+          idx=(idx+1)%TRAIL_LEN;
+          ctx2.lineTo(cx-mainObj.trail[idx*3+2]*s, cy+mainObj.trail[idx*3]*s);
+        }
+        ctx2.strokeStyle='rgba(255,220,0,0.3)';
+        ctx2.lineWidth=1;
+        ctx2.stroke();
+      }
+      // Glow
+      const mainR2=objSizePx*Math.max(0.8,Math.min(2.4,1+0.7*Math.log2(Math.max(1,zoom2))));
+      const glowR2=mainR2*2.8;
+      const g2=ctx2.createRadialGradient(mx,my,0,mx,my,glowR2);
+      g2.addColorStop(0,'rgba(255,220,0,0.35)');
+      g2.addColorStop(1,'rgba(255,220,0,0)');
+      ctx2.beginPath();ctx2.arc(mx,my,glowR2,0,2*Math.PI);
+      ctx2.fillStyle=g2;ctx2.fill();
+      // Dot — nonlinear radius: visible at all zoom levels (same as fragments)
+      ctx2.beginPath();ctx2.arc(mx,my,mainR2,0,2*Math.PI);
+      ctx2.fillStyle='#ffdd00';ctx2.fill();
+    }
+  } else {
+    // Frozen main orbit (dashed)
+    drawFrozenMainOrbit2D();
+    // Fragments
+    for(let fi=0;fi<frags.length;fi++){
+      const f=frags[fi];
+      if(!f.alive)continue;
+      const fx=cx-f.z*s, fy=cy+f.x*s;
+      const h3d=Math.sqrt(f.x*f.x+f.y*f.y+f.z*f.z)-RE;
+      const _isSelected=(fi===selectedFrag);
+      let fragColor;
+      if(_isSelected){
+        fragColor='#ffffff';
+      } else if(atmoEnabled){
+        const t=Math.max(0,Math.min(1,1-(h3d-120e3)/280e3));
+        const hue=f.hue*(1-t);
+        fragColor=`hsl(${hue},90%,${55+15*(1-t)}%)`;
+      } else {
+        fragColor=`hsl(${f.hue},90%,68%)`;
+      }
+      // Trail
+      if(f.trailLen>1){
+        ctx2.beginPath();
+        const len=f.trailLen;
+        let idx=(f.trailHead-len+TRAIL_LEN)%TRAIL_LEN;
+        ctx2.moveTo(cx-f.trail[idx*3+2]*s, cy+f.trail[idx*3]*s);
+        for(let k=1;k<len;k++){
+          idx=(idx+1)%TRAIL_LEN;
+          ctx2.lineTo(cx-f.trail[idx*3+2]*s, cy+f.trail[idx*3]*s);
+        }
+        ctx2.strokeStyle=_isSelected?'rgba(255,255,255,0.4)':`hsla(${f.hue},80%,60%,0.22)`;
+        ctx2.lineWidth=1;
+        ctx2.stroke();
+      }
+      // Dot
+      const fragR=objSizePx*Math.max(0.6,Math.min(1.8,0.75+0.55*Math.log2(Math.max(1,zoom2))))
+        *(_isSelected?1.8:1.0);
+      ctx2.beginPath();ctx2.arc(fx,fy,fragR,0,2*Math.PI);
+      ctx2.fillStyle=fragColor;ctx2.fill();
+    }
+    // All orbits
+    if(showAllOrbits){
+      for(let fi=0;fi<frags.length;fi++){
+        if(fi===selectedFrag)continue; // selected orbit drawn separately
+        const f=frags[fi];
+        if(!f.alive)continue;
+        const el=orbitalElements2D(f.x,f.y,f.z,f.vx,f.vy,f.vz);
+        if(!el||el.a<=0||el.a>1e9)continue;
+        const{a,e,omega,hyperbolic}=el;
+        const omegaScreen=Math.PI/2-omega;
+        ctx2.save();
+        ctx2.translate(cx,cy);
+        ctx2.rotate(-omegaScreen);
+        ctx2.strokeStyle='rgba(74,158,255,0.55)';
+        ctx2.lineWidth=1;
+        if(hyperbolic){
+          const nuMax=Math.acos(-1/e)*0.97, rMax=RE*60, segs=64;
+          ctx2.beginPath();let first=true;
+          for(let i=0;i<=segs;i++){
+            const nu=-nuMax+i/segs*2*nuMax;
+            const r=a*(e*e-1)/(1+e*Math.cos(nu));
+            if(!isFinite(r)||r<0||r>rMax){first=true;continue;}
+            const lx=-r*Math.cos(nu)*s, ly=r*Math.sin(nu)*s;
+            if(first){ctx2.moveTo(lx,ly);first=false;}else ctx2.lineTo(lx,ly);
+          }
+          ctx2.stroke();
+        } else {
+          const b=a*Math.sqrt(Math.max(0,1-e*e)), c=a*e;
+          ctx2.translate(+c*s,0);
+          ctx2.beginPath();ctx2.ellipse(0,0,a*s,b*s,0,0,2*Math.PI);
+          ctx2.stroke();
+        }
+        ctx2.restore();
+      }
+    }
+    // Selected orbit
+    if(selectedFrag!==null&&frags[selectedFrag]?.alive){
+      drawFragOrbit2D(frags[selectedFrag]);
+    }
+  }
+
+  // HUD updates (shared with 3D)
+  document.getElementById('ht').textContent=formatTime(simTime);
+  document.getElementById('hz').textContent=zoom2.toFixed(1);
+  if(!exploded){
+    if(mainObj&&mainObj.alive) document.getElementById('hv').textContent=(simTime/T0).toFixed(2);
+    const _r=mainObj&&mainObj.alive?Math.sqrt(mainObj.x**2+mainObj.y**2+mainObj.z**2):RORB;
+    document.getElementById('hh').textContent=Math.round((_r-RE)/1000);
+    const _vel=mainObj&&mainObj.alive?Math.sqrt(mainObj.vx**2+mainObj.vy**2+mainObj.vz**2):null;
+    document.getElementById('hvel').textContent=_vel!==null?(_vel/1000).toFixed(2):'—';
+  } else {
+    const _sel=selectedFrag!==null&&frags[selectedFrag]&&frags[selectedFrag].alive?frags[selectedFrag]:null;
+    if(_sel){
+      const _elv=orbitalElements3D(_sel.x,_sel.y,_sel.z,_sel.vx,_sel.vy,_sel.vz);
+      if(_elv&&!_elv.hyperbolic&&_elv.a>0){
+        const _Tf=2*Math.PI*Math.sqrt(_elv.a**3/GM);
+        document.getElementById('hv').textContent=((simTime-explodeTime)/_Tf).toFixed(2);
+      } else { document.getElementById('hv').textContent='—'; }
+      const _r=Math.sqrt(_sel.x**2+_sel.y**2+_sel.z**2);
+      document.getElementById('hh').textContent=Math.round((_r-RE)/1000);
+      document.getElementById('hvel').textContent=(Math.sqrt(_sel.vx**2+_sel.vy**2+_sel.vz**2)/1000).toFixed(2);
+    } else {
+      document.getElementById('hv').textContent=(simTime/T0).toFixed(2);
+      document.getElementById('hh').textContent='—';
+      document.getElementById('hvel').textContent='—';
+    }
+  }
+  document.getElementById('hud-deorbit').style.display=(mainObj&&!mainObj.alive&&!exploded&&!mainObj.escaped)?'':'none';
+  document.getElementById('hud-escape').style.display=(mainObj&&!mainObj.alive&&!exploded&&mainObj.escaped)?'':'none';
+
+  // Focus tracking
+  if(focusMode){
+    let fx=null,fz=null;
+    if(selectedFrag!==null&&frags[selectedFrag]&&frags[selectedFrag].alive){
+      fx=frags[selectedFrag].x; fz=frags[selectedFrag].z;
+    } else if(selectedMain&&mainObj&&mainObj.alive){
+      fx=mainObj.x; fz=mainObj.z;
+    }
+    if(fx!==null){const s=S2();camX2=fz*s;camY2=-fx*s;}
+    else setFocusMode(false);
+  }
+}
+
+// 2D fragment picking
+function pickFrag2D(clientX, clientY){
+  const rect=canvas2.getBoundingClientRect();
+  const mx=clientX-rect.left, my=clientY-rect.top;
+  const s=S2(), cx=ocx2(), cy=ocy2();
+  const PICK_R=12;
+  let bestIdx=null, bestDist=Infinity, pickMain=false;
+  // check mainObj first
+  if(mainObj&&mainObj.alive&&!exploded){
+    const sx=cx-mainObj.z*s, sy=cy+mainObj.x*s;
+    const d=Math.hypot(mx-sx, my-sy);
+    if(d<PICK_R){bestDist=d;pickMain=true;}
+  }
+  // check frags
+  for(let i=0;i<frags.length;i++){
+    const f=frags[i];
+    if(!f.alive)continue;
+    const sx=cx-f.z*s, sy=cy+f.x*s;
+    const d=Math.hypot(mx-sx, my-sy);
+    if(d<PICK_R&&d<bestDist){bestDist=d;bestIdx=i;pickMain=false;}
+  }
+  if(pickMain){
+    selectedMain=!selectedMain; selectedFrag=null;
+  } else if(bestIdx!==null){
+    selectedFrag=(selectedFrag===bestIdx)?null:bestIdx; selectedMain=false;
+  } else {
+    selectedFrag=null; selectedMain=false;
+  }
+  updateFragInfo();
+  updateFocusBtn();
+}
+
+// ── 2D input events ───────────────────────────────────────────────────────────
+let mouseMoved2=false, mouseDown2X=0, mouseDown2Y=0;
+
+canvas2.addEventListener('mousedown', e=>{
+  drag2=true;
+  drag2StartX=e.clientX; drag2StartY=e.clientY;
+  cam2StartX=camX2; cam2StartY=camY2;
+  mouseDown2X=e.clientX; mouseDown2Y=e.clientY;
+  mouseMoved2=false;
+  canvas2.style.cursor='grabbing';
+});
+window.addEventListener('mousemove', e=>{
+  if(!drag2||!is2D)return;
+  if(Math.abs(e.clientX-mouseDown2X)>4||Math.abs(e.clientY-mouseDown2Y)>4)mouseMoved2=true;
+  camX2=cam2StartX+(e.clientX-drag2StartX);
+  camY2=cam2StartY+(e.clientY-drag2StartY);
+});
+window.addEventListener('mouseup', e=>{
+  if(is2D){
+    if(!mouseMoved2&&e.target===canvas2)pickFrag2D(e.clientX, e.clientY);
+    canvas2.style.cursor='default';
+  }
+  drag2=false;
+});
+canvas2.addEventListener('wheel', e=>{
+  e.preventDefault();
+  const factor=e.deltaY<0?1.15:1/1.15;
+  const rect=canvas2.getBoundingClientRect();
+  const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+  const dx=mx-ocx2(), dy=my-ocy2();
+  camX2+=dx*(1-factor);
+  camY2+=dy*(1-factor);
+  zoom2=Math.max(0.2,Math.min(20,zoom2*factor));
+},{passive:false});
+
+canvas2.addEventListener('touchstart', e=>{
+  e.preventDefault();
+  const ts=Array.from(e.touches);
+  if(ts.length===1){
+    touch2DragX=ts[0].clientX; touch2DragY=ts[0].clientY;
+    touch2CamX0=camX2; touch2CamY0=camY2;
+    pinch2Dist0=null;
+  } else if(ts.length===2){
+    pinch2Dist0=Math.hypot(ts[0].clientX-ts[1].clientX,ts[0].clientY-ts[1].clientY);
+    pinch2Zoom0=zoom2;
+    const rect=canvas2.getBoundingClientRect();
+    pinch2MidX=((ts[0].clientX+ts[1].clientX)/2)-rect.left;
+    pinch2MidY=((ts[0].clientY+ts[1].clientY)/2)-rect.top;
+    touch2CamX0=camX2; touch2CamY0=camY2;
+  }
+},{passive:false});
+canvas2.addEventListener('touchmove', e=>{
+  e.preventDefault();
+  const ts=Array.from(e.touches);
+  if(ts.length===1&&pinch2Dist0===null){
+    camX2=touch2CamX0+(ts[0].clientX-touch2DragX);
+    camY2=touch2CamY0+(ts[0].clientY-touch2DragY);
+  } else if(ts.length===2&&pinch2Dist0!==null){
+    const dist=Math.hypot(ts[0].clientX-ts[1].clientX,ts[0].clientY-ts[1].clientY);
+    const factor=dist/pinch2Dist0;
+    const newZoom=Math.max(0.2,Math.min(20,pinch2Zoom0*factor));
+    const dx=pinch2MidX-ocx2(), dy=pinch2MidY-ocy2();
+    camX2=touch2CamX0+dx*(1-newZoom/pinch2Zoom0);
+    camY2=touch2CamY0+dy*(1-newZoom/pinch2Zoom0);
+    zoom2=newZoom;
+  }
+},{passive:false});
+canvas2.addEventListener('touchend', e=>{
+  if(e.touches.length<2)pinch2Dist0=null;
+  if(e.touches.length===1){touch2DragX=e.touches[0].clientX;touch2DragY=e.touches[0].clientY;}
+  if(e.changedTouches.length===1)pickFrag2D(e.changedTouches[0].clientX,e.changedTouches[0].clientY);
+},{passive:true});
+
+// ── 3D input events ───────────────────────────────────────────────────────────
+canvas3.addEventListener('mousedown', e=>{
+  dragActive=true; dragBtn=e.button;
+  lastMX=e.clientX; lastMY=e.clientY;
+  mouseDownX=e.clientX; mouseDownY=e.clientY;
+  mouseMoved=false;
+  dragMode=hitTestEarth(e.clientX,e.clientY)?'orbit':'pan';
+});
+window.addEventListener('mousemove', e=>{
+  if(!dragActive||is2D)return;
+  const dx=e.clientX-lastMX, dy=e.clientY-lastMY;
+  if(Math.abs(e.clientX-mouseDownX)>4||Math.abs(e.clientY-mouseDownY)>4)mouseMoved=true;
+  lastMX=e.clientX; lastMY=e.clientY;
+  if(dragMode==='orbit'){
+    camTheta-=dx*0.005;
+    camPhi=Math.max(0.05,Math.min(Math.PI-0.05,camPhi-dy*0.005));
+  } else {
+    applyPan(dx,dy);
+  }
+  updateCamera();
+});
+window.addEventListener('mouseup', e=>{
+  if(!is2D&&!mouseMoved&&e.target===canvas3)pickFrag3D(e.clientX, e.clientY);
+  dragActive=false;
+});
+canvas3.addEventListener('wheel', e=>{
+  e.preventDefault();
+  window._camUserZoomed=true;
+  camDist=Math.max(RE*1.1,Math.min(RE*200,camDist*(e.deltaY>0?1.12:1/1.12)));
+  updateCamera();
+},{passive:false});
+
+let touches3={};
+let pinchDist0=null, pinchCamDist0=0;
+let touchDragLast={x:0,y:0};
+let touchMoved3=false, touchDown3X=0, touchDown3Y=0;
+canvas3.addEventListener('touchstart', e=>{
+  e.preventDefault();
+  const ts=Array.from(e.touches);
+  if(ts.length===1){
+    touchDragLast={x:ts[0].clientX,y:ts[0].clientY};
+    touchDown3X=ts[0].clientX; touchDown3Y=ts[0].clientY;
+    touchMoved3=false;
+    pinchDist0=null;
+    dragMode=hitTestEarth(ts[0].clientX,ts[0].clientY)?'orbit':'pan';
+  } else if(ts.length===2){
+    const dx=ts[0].clientX-ts[1].clientX, dy=ts[0].clientY-ts[1].clientY;
+    pinchDist0=Math.sqrt(dx*dx+dy*dy);
+    pinchCamDist0=camDist;
+  }
+},{passive:false});
+canvas3.addEventListener('touchmove', e=>{
+  e.preventDefault();
+  const ts=Array.from(e.touches);
+  if(ts.length===1&&pinchDist0===null){
+    const dx=ts[0].clientX-touchDragLast.x, dy=ts[0].clientY-touchDragLast.y;
+    if(Math.abs(ts[0].clientX-touchDown3X)>4||Math.abs(ts[0].clientY-touchDown3Y)>4)touchMoved3=true;
+    touchDragLast={x:ts[0].clientX,y:ts[0].clientY};
+    if(dragMode==='orbit'){
+      camTheta-=dx*0.005;
+      camPhi=Math.max(0.05,Math.min(Math.PI-0.05,camPhi-dy*0.005));
+    } else {
+      applyPan(dx,dy);
+    }
+    updateCamera();
+  } else if(ts.length===2&&pinchDist0!==null){
+    const dx=ts[0].clientX-ts[1].clientX, dy=ts[0].clientY-ts[1].clientY;
+    const d=Math.sqrt(dx*dx+dy*dy);
+    window._camUserZoomed=true;
+    camDist=Math.max(RE*1.1,Math.min(RE*200,pinchCamDist0*(pinchDist0/d)));
+    updateCamera();
+  }
+},{passive:false});
+canvas3.addEventListener('touchend', e=>{
+  if(e.touches.length<2)pinchDist0=null;
+  if(e.touches.length===1)touchDragLast={x:e.touches[0].clientX,y:e.touches[0].clientY};
+  if(e.changedTouches.length===1&&!touchMoved3){
+    pickFrag3D(e.changedTouches[0].clientX,e.changedTouches[0].clientY);
+  }
+},{passive:false});
+
+function pickFrag3D(clientX, clientY){
+  const rect=canvas3.getBoundingClientRect();
+  const mouse=new THREE.Vector2(
+    ((clientX-rect.left)/rect.width)*2-1,
+    -((clientY-rect.top)/rect.height)*2+1
+  );
+  raycaster.setFromCamera(mouse,activeCamera3D());
+  // check frags
+  const hits=raycaster.intersectObjects(fragMeshes);
+  if(hits.length>0){
+    const idx=fragMeshes.indexOf(hits[0].object);
+    selectedFrag=(selectedFrag===idx)?null:idx; selectedMain=false;
+    if(selectedFrag!==null) updateSelOrbit3D();
+    else if(selOrbitLine){scene.remove(selOrbitLine);selOrbitLine=null;}
+  } else {
+    // check mainObj
+    const mainHits=mainObj&&mainObj.alive&&!exploded?raycaster.intersectObject(mainMesh):[];
+    if(mainHits.length>0){
+      selectedMain=!selectedMain; selectedFrag=null;
+      if(selOrbitLine){scene.remove(selOrbitLine);selOrbitLine=null;}
+    } else {
+      selectedFrag=null; selectedMain=false;
+      if(selOrbitLine){scene.remove(selOrbitLine);selOrbitLine=null;}
+    }
+  }
+  updateFragInfo();
+  updateFocusBtn();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MODE SWITCH
+// ══════════════════════════════════════════════════════════════════════════════
+let is2D=false;
+
+function toggle2D(){
+  is2D=!is2D;
+  document.getElementById('bMode').textContent=is2D?'⬡ 3D':'⬡ 2D';
+  document.getElementById('c3d').style.display=is2D?'none':'block';
+  document.getElementById('c2d').style.display=is2D?'block':'none';
+  document.getElementById('hud-zoom').style.display=is2D?'':'none';
+  if(is2D){
+    resize2D();
+    // reset 2D view to fit current orbit
+    zoom2=1.0; camX2=0; camY2=0;
+  } else {
+    const cw=document.getElementById('cw');
+    camera.aspect=(cw.offsetWidth||1)/(cw.offsetHeight||1);
+    camera.updateProjectionMatrix();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RENDER LOOP
+// ══════════════════════════════════════════════════════════════════════════════
+function render(){
+  if(is2D) render2D();
+  else render3D();
+}
+
+function loop(){
+  if(!running)return;
+  const now=performance.now();
+  let dt=lastTs!==null?(now-lastTs)/1000*simSpeed:0;
+  lastTs=now;
+  if(exploded){
+    const subDt=dt/SUB_STEPS;
+    for(let i=0;i<SUB_STEPS;i++)stepFrags(subDt);
+    updateStats();
+  } else {
+    const subDt=dt/SUB_STEPS;
+    for(let i=0;i<SUB_STEPS;i++)stepMainObj(subDt);
+    if(pendingExplode){pendingExplode=false;explode();}
+  }
+  simTime+=dt;
+  requestAnimationFrame(render);
+  rafId=setTimeout(loop,SIM_INTERVAL);
+}
+
+function idleRender(){
+  requestAnimationFrame(idleRender);
+  if(!running)render();
+}
+requestAnimationFrame(idleRender);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// UI CONTROLS
+// ══════════════════════════════════════════════════════════════════════════════
+
+function fullView(){
+  if(!exploded||frags.length===0){
+    // Before explosion: fit mainObj or default
+    if(is2D){
+      zoom2=1.0;camX2=0;camY2=0;
+    } else {
+      camTargetX=0;camTargetY=0;camTargetZ=0;
+      camTheta=0;camPhi=Math.PI/4;
+      window._camUserZoomed=true;
+      camDist=RORB*2.5;
+      updateCamera();
+    }
+    return;
+  }
+
+  // Collect alive fragment positions
+  const pts=[];
+  for(const f of frags){
+    if(!f.alive||f.beyond)continue;
+    pts.push([f.x,f.y,f.z]);
+  }
+  // Always include Earth center
+  pts.push([0,0,0]);
+
+  if(pts.length===1){
+    // Only Earth
+    if(is2D){zoom2=1.0;camX2=0;camY2=0;}
+    else{camTargetX=0;camTargetY=0;camTargetZ=0;camDist=RORB*2.5;window._camUserZoomed=true;updateCamera();}
+    return;
+  }
+
+  if(showAllOrbits){
+    // Extend pts with apocenter positions (elliptic) or current position capped at R_OBS (hyperbolic)
+    for(const f of frags){
+      if(!f.alive||f.beyond)continue;
+      const el=orbitalElements3D(f.x,f.y,f.z,f.vx,f.vy,f.vz);
+      if(!el)continue;
+      if(el.hyperbolic){
+        // For hyperbolic use current position — it's already the farthest we'll track
+        pts.push([f.x,f.y,f.z]);
+      } else {
+        if(!isFinite(el.ra)||el.a>1e9)continue;
+        const eMag=Math.sqrt(el.ex*el.ex+el.ey*el.ey+el.ez*el.ez)||1;
+        const ax=-el.a*(1+el.e)*el.ex/eMag;
+        const ay=-el.a*(1+el.e)*el.ey/eMag;
+        const az=-el.a*(1+el.e)*el.ez/eMag;
+        pts.push([ax,ay,az]);
+      }
+    }
+  }
+
+  // Bounding box — always include Earth surface
+  let minX=Infinity,minY=Infinity,minZ=Infinity;
+  let maxX=-Infinity,maxY=-Infinity,maxZ=-Infinity;
+  for(const [x,y,z] of pts){
+    if(!isFinite(x)||!isFinite(y)||!isFinite(z))continue;
+    if(x<minX)minX=x; if(x>maxX)maxX=x;
+    if(y<minY)minY=y; if(y>maxY)maxY=y;
+    if(z<minZ)minZ=z; if(z>maxZ)maxZ=z;
+  }
+  minX=Math.min(minX,-RE);minY=Math.min(minY,-RE);minZ=Math.min(minZ,-RE);
+  maxX=Math.max(maxX, RE);maxY=Math.max(maxY, RE);maxZ=Math.max(maxZ, RE);
+
+  const cx=(minX+maxX)/2, cy=(minY+maxY)/2, cz=(minZ+maxZ)/2;
+  const dx=maxX-minX, dy=maxY-minY, dz=maxZ-minZ;
+  const halfDiag=Math.sqrt(dx*dx+dy*dy+dz*dz)/2;
+
+  if(is2D){
+    // 2D: fit bounding box in XZ plane, center on bbox center
+    const dxz=Math.max(dx, dz)*1.1;
+    const s0=S2_0();
+    zoom2=Math.max(0.05,Math.min(20, (Math.min(W2,H2)*0.44)/(s0*dxz*0.5)));
+    const s=s0*zoom2;
+    camX2= cz*s;
+    camY2=-cx*s;
+  } else {
+    window._camUserZoomed=true;
+    camTargetX=cx;camTargetY=cy;camTargetZ=cz;
+    camTheta=0;camPhi=Math.PI/4;
+    camDist=halfDiag*2.4;
+    updateCamera();
+  }
+}
+
+function setFocusMode(on){
+  focusMode=on;
+  const btn=document.getElementById('bFocus');
+  if(on) btn.classList.add('active');
+  else btn.classList.remove('active');
+  if(!on) fullView();
+}
+
+function updateFocusBtn(){
+  const btn=document.getElementById('bFocus');
+  const hasTarget=(selectedFrag!==null&&frags[selectedFrag]&&frags[selectedFrag].alive)
+                ||(selectedMain&&mainObj&&mainObj.alive);
+  btn.disabled=!hasTarget;
+  if(!hasTarget&&focusMode) setFocusMode(false);
+  for(const f of frags) f._lastColor=-1;
+}
+const LOCKABLE=['nAlt','nFrag','sDv','sLaunchDv','nMass'];
+const LOCK_GROUPS=['grpAlt','grpFrag','grpDv','grpLaunchDv','grpMass'];
+function lockParams(){LOCKABLE.forEach(id=>{document.getElementById(id).disabled=true;});LOCK_GROUPS.forEach(id=>{document.getElementById(id).classList.add('locked');});}
+function unlockParams(){LOCKABLE.forEach(id=>{document.getElementById(id).disabled=false;});LOCK_GROUPS.forEach(id=>{document.getElementById(id).classList.remove('locked');});}
+
+function setSimState(state){
+  simState=state;
+  const btn=document.getElementById('bPlay');
+  if(state==='idle'){btn.textContent='▶ Старт';running=false;unlockParams();}
+  else if(state==='running'){btn.textContent='⏸ Пауза';running=true;}
+  else if(state==='paused'){btn.textContent='▶ Далее';running=false;}
+}
+
+function applyOrbitalParams(){
+  const altKm=parseFloat(document.getElementById('nAlt').value)||500;
+  const nf=Math.max(36,Math.min(1000,parseInt(document.getElementById('nFrag').value)||36));
+  document.getElementById('nFrag').value=nf;
+  const mass=Math.max(1,Math.min(100000,parseFloat(document.getElementById('nMass').value)||100));
+  document.getElementById('nMass').value=mass;
+  objMass=mass;
+  BCOEF=objMass/(CD*AREA);
+  HORB=Math.max(150e3,altKm*1e3);
+  RORB=RE+HORB;
+  V0=Math.sqrt(GM/RORB);
+  T0=2*Math.PI*Math.sqrt(RORB**3/GM);
+  NFRAG=Math.max(36,Math.min(1000,nf));
+  updateRefOrbit();
+  window._camUserZoomed=false; camDist=camDistMatch();
+  updateCamera();
+  zoom2=1.0; camX2=0; camY2=0;
+}
+
+document.getElementById('bPlay').onclick=function(){
+  if(simState==='idle'){
+    applyOrbitalParams();lockParams();
+    initMainObj();buildMainTrailLine();
+    setSimState('running');lastTs=null;
+    rafId=setTimeout(loop,SIM_INTERVAL);
+  } else if(simState==='running'){
+    clearTimeout(rafId);setSimState('paused');
+  } else if(simState==='paused'){
+    setSimState('running');lastTs=null;rafId=setTimeout(loop,SIM_INTERVAL);
+  }
+};
+
+document.getElementById('bReset').onclick=function(){
+  clearTimeout(rafId);
+  exploded=false;explodeTime=0;simTime=0;frags=[];aliveCount=0;selectedFrag=null;selectedMain=false;mainObj=null;pendingExplode=false;focusMode=false;showAllOrbits=false;
+  document.getElementById('bFocus').disabled=true;
+  document.getElementById('bFocus').classList.remove('active');
+  document.getElementById('bAllOrbits').classList.remove('active');
+  clearAllOrbitLines3D();
+  fragMeshes.forEach(m=>{m.material.dispose();scene.remove(m);});fragMeshes.length=0;
+  trailLines.forEach(l=>{l.geometry.dispose();l.material.dispose();scene.remove(l);});trailLines.length=0;
+  if(mainTrailLine){mainTrailLine.geometry.dispose();mainTrailLine.material.dispose();scene.remove(mainTrailLine);mainTrailLine=null;}
+  if(selOrbitLine){scene.remove(selOrbitLine);selOrbitLine=null;}
+  if(mainOrbitLine){mainOrbitLine.geometry.dispose();mainOrbitLine.material.dispose();scene.remove(mainOrbitLine);mainOrbitLine=null;}
+  mainOrbitFrozen=false;
+  frozenMainOrbit2D=null;
+  document.getElementById('bBoom').disabled=false;
+  document.getElementById('stats-panel').classList.remove('visible');
+  document.getElementById('hud-obj-info').style.display='none';
+  if(is2D){is2D=false;document.getElementById('bMode').textContent='⬡ 2D';
+    document.getElementById('c3d').style.display='block';
+    document.getElementById('c2d').style.display='none';
+    document.getElementById('hud-zoom').style.display='none';
+  }
+  zoom2=1.0;camX2=0;camY2=0;
+  document.getElementById('nAlt').value=500;
+  document.getElementById('nFrag').value=36;
+  document.getElementById('sDv').value=1000;
+  document.getElementById('lDv').textContent='1000 м/с';
+  document.getElementById('sSize').value=2.5;
+  document.getElementById('lSize').textContent='2.5';
+  objSizePx=2.5;
+  document.getElementById('sLaunchDv').value=0;
+  document.getElementById('lLaunchDv').textContent='0 м/с';
+  document.getElementById('nMass').value=100;
+  document.getElementById('sSpd').value=300;
+  document.getElementById('lSpd').textContent='300×';
+  dvMag=1000;launchDv=0;objMass=100;BCOEF=objMass/(CD*AREA);simSpeed=300;
+  HORB=500e3;RORB=RE+HORB;
+  V0=Math.sqrt(GM/RORB);T0=2*Math.PI*Math.sqrt(RORB**3/GM);NFRAG=36;
+  updateRefOrbit();
+  initMainObj();
+  mainMesh.visible=true;mainGlowMesh.visible=true;
+  camTheta=0;camPhi=Math.PI/4;window._camUserZoomed=false; camDist=camDistMatch();camTargetX=0;camTargetY=0;camTargetZ=0;updateCamera();
+  setSimState('idle');
+};
+
+document.getElementById('bBoom').onclick=function(){
+  if(simState==='idle'){
+    applyOrbitalParams();lockParams();
+    initMainObj();buildMainTrailLine();
+    pendingExplode=true;
+    setSimState('running');lastTs=null;
+    rafId=setTimeout(loop,SIM_INTERVAL);
+  } else if(simState==='paused'){
+    setSimState('running');lastTs=null;rafId=setTimeout(loop,SIM_INTERVAL);
+    explode();
+  } else {
+    explode();
+  }
+};
+
+document.getElementById('bView').onclick=function(){
+  if(is2D){zoom2=1.0;camX2=0;camY2=0;}
+  else{camTheta=0;camPhi=Math.PI/4;window._camUserZoomed=false; camDist=camDistMatch();camTargetX=0;camTargetY=0;camTargetZ=0;updateCamera();}
+};
+
+document.getElementById('bFull').onclick=function(){
+  setFocusMode(false);
+  fullView();
+};
+
+document.getElementById('bFocus').onclick=function(){
+  if(focusMode) setFocusMode(false);
+  else if(selectedFrag!==null&&frags[selectedFrag]&&frags[selectedFrag].alive) setFocusMode(true);
+};
+
+document.getElementById('bAllOrbits').onclick=function(){
+  showAllOrbits=!showAllOrbits;
+  this.classList.toggle('active',showAllOrbits);
+  if(!showAllOrbits)clearAllOrbitLines3D();
+};
+
+document.getElementById('bMode').onclick=function(){toggle2D();};
+
+document.getElementById('sSpd').oninput=function(){
+  simSpeed=+this.value;document.getElementById('lSpd').textContent=this.value+'×';
+};
+document.getElementById('sDv').oninput=function(){
+  dvMag=+this.value;document.getElementById('lDv').textContent=this.value+' м/с';
+};
+document.getElementById('sSize').oninput=function(){
+  objSizePx=+this.value;document.getElementById('lSize').textContent=this.value;
+};
+document.getElementById('sLaunchDv').oninput=function(){
+  launchDv=+this.value;
+  document.getElementById('lLaunchDv').textContent=(launchDv>=0?'+':'')+launchDv+' м/с';
+};
+document.getElementById('nAlt').onblur=function(){
+  let v=parseInt(this.value)||500;v=Math.max(150,Math.min(2000,v));this.value=v;
+};
+document.getElementById('nFrag').onblur=function(){
+  let v=parseInt(this.value)||36;v=Math.max(36,Math.min(1000,v));this.value=v;
+};
+document.getElementById('nMass').onblur=function(){
+  let v=parseFloat(this.value)||100;v=Math.max(1,Math.min(100000,v));this.value=v;
+};
+document.getElementById('cbAtmo').onchange=function(){atmoEnabled=this.checked;};
+
+document.getElementById('bSkip').onclick=async function(){
+  const n=parseFloat(document.getElementById('nSkip').value)||1;
+  const mult=parseFloat(document.getElementById('selSkip').value);
+  const totalSec=n*mult*86400;
+  const wasRunning=running;
+  if(wasRunning){clearTimeout(rafId);running=false;}
+  const btn=document.getElementById('bSkip');
+  btn.disabled=true;btn.textContent='⏳ 0%';
+  fastForward=true;
+  _skipStepCount=0;
+  let elapsed=0;
+  const CHUNK_SEC=30000; // секунд за один чанк (для прогресс-бара)
+  const totalChunks=Math.ceil(totalSec/CHUNK_SEC);
+  let chunksDone=0;
+  while(elapsed<totalSec){
+    const chunkEnd=Math.min(elapsed+CHUNK_SEC,totalSec);
+    while(elapsed<chunkEnd){
+      const dt=Math.min(adaptiveSkipDt(),chunkEnd-elapsed);
+      if(exploded)stepFrags(dt);
+      else stepMainObj(dt);
+      simTime+=dt;
+      elapsed+=dt;
+      _skipStepCount++;
+      if(_skipStepCount%ENERGY_CORRECT_INTERVAL===0)correctFragEnergies();
+    }
+    chunksDone++;
+    btn.textContent=`⏳ ${Math.round(chunksDone/totalChunks*100)}%`;
+    await new Promise(r=>setTimeout(r,0));
+  }
+  if(exploded)updateStats();
+  fastForward=false;
+  btn.disabled=false;btn.textContent='⏩';
+  if(wasRunning){running=true;lastTs=null;rafId=setTimeout(loop,SIM_INTERVAL);}
+};
+
+window.addEventListener('resize',()=>{
+  resize3D();
+  if(is2D)resize2D();
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+buildStars2();
+initMainObj();
+setTimeout(()=>{
+  resize3D();
+  resize2D();
+  simSpeed=+document.getElementById('sSpd').value;
+},50);
+</script>
+</body>
+</html>
